@@ -19,7 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libnccl2=${NCCL_VERSION} \
         libnccl-dev=${NCCL_VERSION} \
         libjpeg-dev \
-		libpng-dev 
+		libpng-dev \
+		jq \
+        locales
 		
 
 RUN locale-gen en_US.UTF-8
