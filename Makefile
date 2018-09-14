@@ -18,6 +18,9 @@ build:
 
 run:
 	nvidia-docker run -v $(PWD):/workspace -it $(image_name)
+	
+notebook:
+	nvidia-docker run -v $(PWD):/workspace -p 9999:9999 -it $(image_name) bash -c "jupyter notebook --ip=* --port=9999 --no-browser --allow-root"
 
 push:
 	docker push $(image_name)
