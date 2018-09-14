@@ -13,6 +13,9 @@ dependencies:
   - scikit-learn
   - pillow
   - matplotlib
+  - seaborn
+  - scikit-image
   - pip:
     - tensorflow-gpu==1.10
     - keras
+    - tqdm
