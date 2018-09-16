@@ -19,3 +19,4 @@ dependencies:
     - tensorflow-gpu==1.10
     - keras
     - tqdm
+    - gitpython

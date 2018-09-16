@@ -10,11 +10,14 @@ PWD:=$(shell pwd)
 
 image_name:=masalvar/ksalt
 DATA_DIR:=/mnt/ksalt
+MODEL_DIR:=/mnt/models/ksalt
 setup_volumes:=-v $(PWD):/workspace  \
-	-v $(DATA_DIR):/mnt/data 
+	-v $(DATA_DIR):/mnt/data \
+	-v $(MODEL_DIR):/mnt/models
 
 setup_environment:=--env SCRIPTS='/workspae' \
 	--env DATA='/mnt/data' \
+	--env MODELS='/mnt/models' \
 	--env PYTHONPATH=$PYTHONPATH:/workspace/src
 
 
