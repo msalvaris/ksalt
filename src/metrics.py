@@ -37,8 +37,8 @@ def iou_metric(labels, y_pred, print_table=False, true_objects=2, pred_objects=2
     union = area_true + area_pred - intersection
 
     # Exclude background from the analysis
-    intersection = intersection.diagonal()[1:]
-    union = union.diagonal()[1:].copy()
+    intersection = intersection[1:, 1:]
+    union = union[1:, 1:]
     union[union == 0] = 1e-9
 
     # Compute the intersection over union
