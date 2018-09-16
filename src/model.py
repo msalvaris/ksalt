@@ -9,7 +9,7 @@ def _ver():
 
 
 def model_path():
-    model_path = os.path.join(os.getenv('MODEL'), _ver())
+    model_path = os.path.join(os.getenv('MODELS'), _ver())
     if not os.path.exists(model_path):
         os.makedirs(model_path)
     return model_path
