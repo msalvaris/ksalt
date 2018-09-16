@@ -14,7 +14,9 @@ setup_volumes:=-v $(PWD):/workspace  \
 	-v $(DATA_DIR):/mnt/data 
 
 setup_environment:=--env SCRIPTS='/workspae' \
-	--env DATA='/mnt/data' 
+	--env DATA='/mnt/data' \
+	--env PYTHONPATH=$PYTHONPATH:/workspace/src
+
 
 help:
 	echo "$$PROJECT_HELP_MSG" | less
