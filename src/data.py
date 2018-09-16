@@ -15,6 +15,8 @@ def training_images_path():
 def training_masks_path():
     return os.path.join(os.getenv('DATA'), 'train', "masks")
 
+def test_images_path():
+    return os.path.join(os.getenv('DATA'), 'test', "images")
 
 def training_csv_path():
     return os.path.join(os.getenv('DATA'), "train.csv")
