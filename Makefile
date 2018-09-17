@@ -11,14 +11,18 @@ PWD:=$(shell pwd)
 image_name:=masalvar/ksalt
 DATA_DIR:=/mnt/ksalt
 MODEL_DIR:=/mnt/models/ksalt
+KAGGLE=/home/mat/.kaggle
+
 setup_volumes:=-v $(PWD):/workspace  \
 	-v $(DATA_DIR):/mnt/data \
-	-v $(MODEL_DIR):/mnt/models
+	-v $(MODEL_DIR):/mnt/models \
+	-v $(KAGGLE):/kaggle
 
-setup_environment:=--env SCRIPTS='/workspae' \
+setup_environment:=--env SCRIPTS='/workspace' \
 	--env DATA='/mnt/data' \
 	--env MODELS='/mnt/models' \
-	--env PYTHONPATH=$PYTHONPATH:/workspace/src
+	--env PYTHONPATH=$PYTHONPATH:/workspace/src \
+	--env KAGGLE_CONFIG_DIR=/kaggle 
 
 
 help:
@@ -36,6 +40,28 @@ notebook:
 push:
 	docker push $(image_name)
 
+# ONLY RUN THESE COMMANDS INSIDE THE DOCKER CONTAINER
+$DATA/train.zip:
+	kaggle competitions download -c tgs-salt-identification-challenge --path $DATA
+	
+$DATA/test.zip:
+	kaggle competitions download -c tgs-salt-identification-challenge --path $DATA
+	
+$DATA/train: $DATA/train.zip
+	cd $DATA
+	mkdir -p train && unzip train.zip -d train
+	
+$DATA/test: $DATA/test.zip
+	cd $DATA
+	mkdir -p train && unzip train.zip -d train
 
+download-data: $DATA/train $DATA/test $DATA/train.csv $DATA/depths.csv
+	@echo Data dowloaded
+	
+run-model: $DATA/train $DATA/test
+	@echo
+	
+submit:
+	python src/submission.py
 
 .PHONY: help build push
