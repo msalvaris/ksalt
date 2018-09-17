@@ -90,3 +90,19 @@ def run_length_encode(img, order='F', format=True):
         return z[:-1]
     else:
         return runs
+    
+    
+"""
+used for converting the decoded image to rle mask
+Fast compared to previous one
+"""
+def rle_encode(im):
+    '''
+    im: numpy array, 1 - mask, 0 - background
+    Returns run length as string formated
+    '''
+    pixels = im.flatten(order = 'F')
+    pixels = np.concatenate([[0], pixels, [0]])
+    runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
+    runs[1::2] -= runs[::2]
+    return ' '.join(str(x) for x in runs)
