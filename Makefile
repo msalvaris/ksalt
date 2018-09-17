@@ -43,24 +43,24 @@ push:
 
 ### ONLY RUN THESE COMMANDS INSIDE THE DOCKER CONTAINER ###
 
-$DATA/train.zip:
-	kaggle competitions download -c tgs-salt-identification-challenge --path $DATA
+$(DATA)/train.zip:
+	kaggle competitions download -c tgs-salt-identification-challenge --path $(DATA)
 	
-$DATA/test.zip:
-	kaggle competitions download -c tgs-salt-identification-challenge --path $DATA
+$(DATA)/test.zip:
+	kaggle competitions download -c tgs-salt-identification-challenge --path $(DATA)
 	
-$DATA/train: $DATA/train.zip
-	cd $DATA
+$(DATA)/train: $(DATA)/train.zip
+	cd $(DATA)
 	mkdir -p train && unzip train.zip -d train
 	
-$DATA/test: $DATA/test.zip
-	cd $DATA
+$(DATA)/test: $(DATA)/test.zip
+	cd $(DATA)
 	mkdir -p train && unzip train.zip -d train
 
-download-data: $DATA/train $DATA/test $DATA/train.csv $DATA/depths.csv
+download-data: $DATA/train $(DATA)/test $DATA/train.csv $(DATA)/depths.csv
 	@echo Data dowloaded
 	
-run-model: $DATA/train $DATA/test
+run-model: $(DATA)/train $(DATA)/test
 	papermill notebooks/Model.ipynb notebooks/Model.ipynb --log-output $(FLAGS)
 	
 submit:
