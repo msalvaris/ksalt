@@ -61,7 +61,7 @@ download-data: $DATA/train $DATA/test $DATA/train.csv $DATA/depths.csv
 	@echo Data dowloaded
 	
 run-model: $DATA/train $DATA/test
-	@echo
+	papermill notebooks/model.ipynb notebooks/model.ipynb --log-output $(FLAGS)
 	
 submit:
 	python src/submission.py $(FLAGS)
