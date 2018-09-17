@@ -1,13 +1,11 @@
 import numpy as np
 import tensorflow as tf
 
+
 def cov_to_class(val):
     for i in range(0, 11):
         if val * 10 <= i:
             return i
-
-
-
 
 
 def iou_metric(labels, y_pred, print_table=False, true_objects=2, pred_objects=2):
@@ -99,4 +97,8 @@ def get_iou_vector(A, B):
 
 
 def my_iou_metric(label, pred):
-    return tf.py_func(get_iou_vector, [label, pred>0.5], tf.float64)
+    return tf.py_func(get_iou_vector, [label, pred > 0.5], tf.float64)
+
+
+def my_iou_metric_2(label, pred):
+    return tf.py_func(get_iou_vector, [label, pred > 0], tf.float64)
