@@ -7,6 +7,8 @@ from subprocess import CalledProcessError, TimeoutExpired
 
 from git import Repo
 
+from model import model_path
+
 logger = logging.getLogger(__name__)
 
 
@@ -59,7 +61,7 @@ def _submit(filename, dry_run=False):
 if __name__ == '__main__':
     dry_run = True
     logger.setLevel(logging.INFO)
-    submissions_path = os.getenv('MODELS')
+    submissions_path = model_path()
     filenames = glob(os.path.join(submissions_path, '*.csv'))
     subfile = _options.get(len(filenames), _multiple_submissions)(filenames)
     _submit(subfile, dry_run=dry_run)
