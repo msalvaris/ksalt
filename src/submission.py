@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import subprocess
+import sys
 from glob import glob
 from subprocess import CalledProcessError, TimeoutExpired
 
@@ -61,6 +62,8 @@ def _submit(filename, dry_run=False):
 if __name__ == '__main__':
     dry_run = True
     logger.setLevel(logging.INFO)
+    ch = logging.StreamHandler(stream=sys.stdout)
+    logger.addHandler(ch)
     submissions_path = model_path()
     filenames = glob(os.path.join(submissions_path, '*.csv'))
     subfile = _options.get(len(filenames), _multiple_submissions)(filenames)
