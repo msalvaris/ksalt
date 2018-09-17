@@ -50,7 +50,7 @@ def _submit(filename, dry_run=False):
                                      '-f', filename,
                                      '-m', msg,
                                      'tgs-salt-identification-challenge'],
-                                    check=True, timeout=15, capture_output=True)
+                                    check=True, timeout=15, stdout=subprocess.PIPE)
 
         logger.info('Successful submission')
     except CalledProcessError:
