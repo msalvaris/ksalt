@@ -6,8 +6,8 @@ import sys
 from glob import glob
 from subprocess import CalledProcessError, TimeoutExpired
 
+import fire
 from git import Repo
-
 from model import model_path
 
 logger = logging.getLogger(__name__)
@@ -59,12 +59,15 @@ def _submit(filename, dry_run=False):
         logger.warning('Submission timed out')
 
 
-if __name__ == '__main__':
-    dry_run = True
-    logger.setLevel(logging.INFO)
-    ch = logging.StreamHandler(stream=sys.stdout)
-    logger.addHandler(ch)
+def main(dry_run=False):
     submissions_path = model_path()
     filenames = glob(os.path.join(submissions_path, '*.csv'))
     subfile = _options.get(len(filenames), _multiple_submissions)(filenames)
     _submit(subfile, dry_run=dry_run)
+
+
+if __name__ == '__main__':
+    logger.setLevel(logging.INFO)
+    ch = logging.StreamHandler(stream=sys.stdout)
+    logger.addHandler(ch)
+    fire.Fire(main)

@@ -62,6 +62,6 @@ run-model: $DATA/train $DATA/test
 	@echo
 	
 submit:
-	python src/submission.py
+	python src/submission.py --dry-run
 
 .PHONY: help build push
