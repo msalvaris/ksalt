@@ -36,7 +36,7 @@ _options = {0: _no_submission_files,
 
 
 def _ver():
-    repo = Repo()
+    repo = Repo(search_parent_directories=True)
     return repo.active_branch.name
 
 

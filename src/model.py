@@ -3,7 +3,7 @@ import os
 
 
 def _ver():
-    repo = Repo()
+    repo = Repo(search_parent_directories=True)
     # repo.active_branch.commit.hexsha
     return repo.active_branch.name
 

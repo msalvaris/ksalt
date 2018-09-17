@@ -19,8 +19,7 @@ setup_volumes:=-v $(PWD):/workspace  \
 	-v $(MODEL_DIR):/mnt/models \
 	-v $(KAGGLE):/kaggle
 
-setup_environment:=--env SCRIPTS='/workspace' \
-	--env DATA='/mnt/data' \
+setup_environment:=--env DATA='/mnt/data' \
 	--env MODELS='/mnt/models' \
 	--env PYTHONPATH=$PYTHONPATH:/workspace/src \
 	--env KAGGLE_CONFIG_DIR=/kaggle 
