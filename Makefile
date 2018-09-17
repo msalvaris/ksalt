@@ -11,7 +11,8 @@ PWD:=$(shell pwd)
 image_name:=masalvar/ksalt
 DATA_DIR:=/mnt/ksalt
 MODEL_DIR:=/mnt/models/ksalt
-KAGGLE=/home/mat/.kaggle
+KAGGLE:=/home/mat/.kaggle
+FLAGS:=
 
 setup_volumes:=-v $(PWD):/workspace  \
 	-v $(DATA_DIR):/mnt/data \
@@ -40,7 +41,8 @@ notebook:
 push:
 	docker push $(image_name)
 
-# ONLY RUN THESE COMMANDS INSIDE THE DOCKER CONTAINER
+### ONLY RUN THESE COMMANDS INSIDE THE DOCKER CONTAINER ###
+
 $DATA/train.zip:
 	kaggle competitions download -c tgs-salt-identification-challenge --path $DATA
 	
@@ -62,6 +64,10 @@ run-model: $DATA/train $DATA/test
 	@echo
 	
 submit:
-	python src/submission.py --dry-run
+	python src/submission.py $(FLAGS)
+	
+show-submissions:
+	kaggle competitions submissions tgs-salt-identification-challenge
+	
 
 .PHONY: help build push
