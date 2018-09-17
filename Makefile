@@ -67,6 +67,16 @@ submit:
 	
 show-submissions:
 	kaggle competitions submissions tgs-salt-identification-challenge
-	
+
+clean-output: clean-model clean-submission
+	@echo cleaned model and submission output
+
+clean-model:
+	$(eval branch_name:=$(shell git branch | grep \* | cut -d ' ' -f2))
+	rm $(MODELS)/branch_name/*.model
+
+clean-submission:
+	$(eval branch_name:=$(shell git branch | grep \* | cut -d ' ' -f2))
+	rm $(MODELS)/branch_name/*.csv
 
 .PHONY: help build push
