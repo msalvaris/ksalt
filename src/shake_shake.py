@@ -210,7 +210,7 @@ class ConvRelu(nn.Module):
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, in_channels, middle_channels, out_channels):
+    def __init__(self, in_channels, middle_channels, out_channels, padding=1):
         super().__init__()
 
         self.block = nn.Sequential(
@@ -218,7 +218,7 @@ class DecoderBlock(nn.Module):
             nn.ConvTranspose2d(middle_channels, out_channels,
                                kernel_size=3,
                                stride=2,
-                               padding=1,
+                               padding=padding,
                                output_padding=1),
             nn.ReLU(inplace=True)
         )
@@ -237,7 +237,7 @@ class UNet(nn.Module):
         self.center = DecoderBlock(num_filters * 8 * 2, num_filters * 8 * 2, num_filters * 8)
         self.dec3 = DecoderBlock(num_filters * (16 + 8), num_filters * 8 * 2, num_filters * 4)
         self.dec2 = DecoderBlock(num_filters * (8 + 4), num_filters * 4 * 2, num_filters * 2)
-        self.dec1 = ConvRelu(num_filters * (2 + 1), num_filters)
+        self.dec1 = ConvRelu(num_filters * (6), num_filters)
 
         self.final = nn.Conv2d(num_filters, 1, kernel_size=1, )
 
@@ -248,10 +248,14 @@ class UNet(nn.Module):
         conv2 = self.encoder.stage2(conv1)
         conv3 = self.encoder.stage3(conv2)
         center = self.center(self.pool(conv3))
+        print(center.shape)
+        print(conv3.shape)
         dec3 = self.dec3(torch.cat([center, conv3], 1))
         print(dec3.shape)
         print(conv2.shape)
         dec2 = self.dec2(torch.cat([dec3, conv2], 1))
+        print(dec2.shape)
+        print(conv1.shape)
         dec1 = self.dec1(torch.cat([dec2, conv1], 1))
         return F.sigmoid(self.final(dec1))
         # 
