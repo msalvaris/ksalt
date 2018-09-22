@@ -245,8 +245,8 @@ class UNet(nn.Module):
         x = F.relu(self.encoder.bn(self.encoder.conv(x)), inplace=True)
 
         conv1 = self.encoder.stage1(x)
-        conv2 = self.encoder.stage2(x)
-        conv3 = self.encoder.stage3(x)
+        conv2 = self.encoder.stage2(conv1)
+        conv3 = self.encoder.stage3(conv2)
         center = self.center(self.pool(conv3))
         dec3 = self.dec3(torch.cat([center, conv3], 1))
         dec2 = self.dec2(torch.cat([dec3, conv2], 1))
