@@ -27,7 +27,7 @@ def depths_csv_path():
 
 def _load_and_normalize(path):
     image_grey = Image.open(path).convert('L')
-    return (np.array(image_grey) / 255).reshape(image_grey.heigth, image_grey.width, 1)
+    return (np.array(image_grey) / 255).reshape(image_grey.height, image_grey.width, 1)
 
 
 def load_images_as_arrays(image_id_iter, images_path, progress=tqdm):
