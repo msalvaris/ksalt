@@ -235,8 +235,8 @@ class UNet(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
 
         self.center = DecoderBlock(num_filters * 8 * 2, num_filters * 8 * 2, num_filters * 8)
-        self.dec5 = DecoderBlock(num_filters * (16 + 8), num_filters * 8 * 2, num_filters * 4)
-        self.dec3 = DecoderBlock(num_filters * (8 + 4), num_filters * 4 * 2, num_filters * 2)
+        self.dec3 = DecoderBlock(num_filters * (16 + 8), num_filters * 8 * 2, num_filters * 4)
+        self.dec2 = DecoderBlock(num_filters * (8 + 4), num_filters * 4 * 2, num_filters * 2)
         self.dec1 = ConvRelu(num_filters * (2 + 1), num_filters)
 
         self.final = nn.Conv2d(num_filters, 1, kernel_size=1, )
