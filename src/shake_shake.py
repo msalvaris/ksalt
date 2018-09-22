@@ -249,6 +249,8 @@ class UNet(nn.Module):
         conv3 = self.encoder.stage3(conv2)
         center = self.center(self.pool(conv3))
         dec3 = self.dec3(torch.cat([center, conv3], 1))
+        print(dec3.shape)
+        print(conv2.shape)
         dec2 = self.dec2(torch.cat([dec3, conv2], 1))
         dec1 = self.dec1(torch.cat([dec2, conv1], 1))
         return F.sigmoid(self.final(dec1))
