@@ -1,10 +1,9 @@
 import numpy as np
 from tqdm import tqdm
 import os
-from keras.preprocessing.image import load_img
 from toolz import compose
 import pandas as pd
-
+from PIL import Image
 from metrics import cov_to_class
 
 
@@ -27,7 +26,8 @@ def depths_csv_path():
 
 
 def _load_and_normalize(path):
-    return np.array(load_img(path, color_mode="grayscale")) / 255
+    image_grey = Image.open(path).convert('L')
+    return (np.array(image_grey) / 255).reshape(image_grey.heigth, image_grey.width, 1)
 
 
 def load_images_as_arrays(image_id_iter, images_path, progress=tqdm):
