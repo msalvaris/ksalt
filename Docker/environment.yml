@@ -1,6 +1,7 @@
 name: ksalt
 channels:
  - conda-forge
+ - pytorch
 dependencies:
   - python=3.6
   - numpy
@@ -15,12 +16,13 @@ dependencies:
   - matplotlib
   - seaborn
   - scikit-image
+  - pytorch
   - pip:
-    - tensorflow-gpu==1.10
-    - keras
+    - torchvision
     - tqdm
     - gitpython
     - kaggle 
     - papermill
     - fire
     - pydot
+    - "--editable=git+https://github.com/szagoruyko/pytorchviz#egg=pytorchviz"
