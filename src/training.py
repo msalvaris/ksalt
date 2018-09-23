@@ -40,6 +40,12 @@ def train(epoch, model, optimizer, criterion, train_loader):
             logger.info(message)
 
     elapsed = time.time() - start
+    message = (
+        f"Epoch: {epoch},"
+        f"Step: {step},"
+        f"Train: loss {np.mean(train_metrics['loss']):.3f},  IoU {np.mean(train_metrics['iou']):.3f}"
+    )
+    logger.info(message)
     logger.info('Elapsed {:.2f}'.format(elapsed))
     return train_metrics
 
