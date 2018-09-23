@@ -34,12 +34,13 @@ def train(epoch, model, optimizer, criterion, train_loader):
             message = (
                 f"Epoch: {epoch},"
                 f"Step: {step},"
-                f"Train: {np.mean(train_metrics['loss']):.3f},{np.mean(train_metrics['iou']):.3f}"
+                f"Train: loss {np.mean(train_metrics['loss']):.3f},  IoU {np.mean(train_metrics['iou']):.3f}"
             )
             logger.info(message)
 
     elapsed = time.time() - start
     logger.info('Elapsed {:.2f}'.format(elapsed))
+    return train_metrics
 
 
 def test(epoch, model, criterion, test_loader):
@@ -62,7 +63,7 @@ def test(epoch, model, criterion, test_loader):
 
     message = (
         f"Epoch: {epoch},"
-        f"Val: {np.mean(val_metrics['loss']):.3f},{np.mean(val_metrics['iou']):.3f}| "
+        f"Val: loss {np.mean(val_metrics['loss']):.3f}, IoU {np.mean(val_metrics['iou']):.3f}| "
     )    
     logger.info(message)
 
