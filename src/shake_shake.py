@@ -296,7 +296,7 @@ class UNet(nn.Module):
 
     
     def forward(self, x):
-        x = F.relu(self.encoder.bn(self.encoder.conv(x)), inplace=True)
+        x = F.relu(self.bn(self.conv(x)), inplace=True)
         conv1 = self.stage1(x)
         conv2 = self.stage2(conv1)
         conv3 = self.stage3(conv2)
