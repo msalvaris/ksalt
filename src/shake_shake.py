@@ -230,50 +230,78 @@ class DecoderBlock(nn.Module):
 class UNet(nn.Module):
     def __init__(self, config):
         super().__init__()
-        num_filters=24
-        self.encoder = Network(config)
+
+        input_shape = config['input_shape']
+
+        base_channels = config['base_channels']
+        depth = config['depth']
+        self.shake_config = (config['shake_forward'],
+                             config['shake_backward'],
+                             config['shake_image'])
+
+        block = BasicBlock
+        n_blocks_per_stage = (depth - 2) // 6
+        assert n_blocks_per_stage * 6 + 2 == depth
+
+        n_channels = [base_channels, base_channels * 2, base_channels * 4]
+
+        self.conv = nn.Conv2d(
+            input_shape[1],
+            n_channels[0],
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias=False)
+        self.bn = nn.BatchNorm2d(base_channels)
+
+        self.stage1 = self._make_stage(
+            n_channels[0], n_channels[0], n_blocks_per_stage, block, stride=1)
+        self.stage2 = self._make_stage(
+            n_channels[0], n_channels[1], n_blocks_per_stage, block, stride=2)
+        self.stage3 = self._make_stage(
+            n_channels[1], n_channels[2], n_blocks_per_stage, block, stride=2)
+
         self.pool = nn.MaxPool2d(2, 2)
 
-        self.center = DecoderBlock(num_filters * 8 * 2, num_filters * 8 * 2, num_filters * 8)
-        self.dec3 = DecoderBlock(num_filters * (16 + 8), num_filters * 8 * 2, num_filters * 4)
-        self.dec2 = DecoderBlock(num_filters * (8 + 4), num_filters * 4 * 2, num_filters * 2)
-        self.dec1 = ConvRelu(num_filters * (6), num_filters)
+        self.center = DecoderBlock(n_channels[2], n_channels[2], n_channels[1])
+        self.dec3 = DecoderBlock(n_channels[2]+n_channels[1], n_channels[1], n_channels[1])
+        self.dec2 = DecoderBlock(n_channels[1]+n_channels[1], n_channels[1], n_channels[0])
+        self.dec1 = ConvRelu(base_channels*2, base_channels)
 
-        self.final = nn.Conv2d(num_filters, 1, kernel_size=1, )
+        self.final = nn.Conv2d(base_channels, 1, kernel_size=1, )
 
+        # initialize weights
+        self.apply(initialize_weights)
+        
+
+    def _make_stage(self, in_channels, out_channels, n_blocks, block, stride):
+        stage = nn.Sequential()
+        for index in range(n_blocks):
+            block_name = 'block{}'.format(index + 1)
+            if index == 0:
+                stage.add_module(block_name,
+                                 block(
+                                     in_channels,
+                                     out_channels,
+                                     stride=stride,
+                                     shake_config=self.shake_config))
+            else:
+                stage.add_module(block_name,
+                                 block(
+                                     out_channels,
+                                     out_channels,
+                                     stride=1,
+                                     shake_config=self.shake_config))
+        return stage
+
+    
     def forward(self, x):
         x = F.relu(self.encoder.bn(self.encoder.conv(x)), inplace=True)
-
-        conv1 = self.encoder.stage1(x)
-        conv2 = self.encoder.stage2(conv1)
-        conv3 = self.encoder.stage3(conv2)
+        conv1 = self.stage1(x)
+        conv2 = self.stage2(conv1)
+        conv3 = self.stage3(conv2)
         center = self.center(self.pool(conv3))
-        print(center.shape)
-        print(conv3.shape)
         dec3 = self.dec3(torch.cat([center, conv3], 1))
-        print(dec3.shape)
-        print(conv2.shape)
         dec2 = self.dec2(torch.cat([dec3, conv2], 1))
-        print(dec2.shape)
-        print(conv1.shape)
         dec1 = self.dec1(torch.cat([dec2, conv1], 1))
         return F.sigmoid(self.final(dec1))
-        # 
-        # conv1 = self.relu(self.conv1(x))
-        # conv2 = self.relu(self.conv2(self.pool(conv1)))
-        # conv3s = self.relu(self.conv3s(self.pool(conv2)))
-        # conv3 = self.relu(self.conv3(conv3s))
-        # conv4s = self.relu(self.conv4s(self.pool(conv3)))
-        # conv4 = self.relu(self.conv4(conv4s))
-        # conv5s = self.relu(self.conv5s(self.pool(conv4)))
-        # conv5 = self.relu(self.conv5(conv5s))
-        # 
-        # center = self.center(self.pool(conv5))
-        # 
-        # # Deconvolutions with copies of VGG11 layers of corresponding size 
-        # dec5 = self.dec5(torch.cat([center, conv5], 1))
-        # dec4 = self.dec4(torch.cat([dec5, conv4], 1))
-        # dec3 = self.dec3(torch.cat([dec4, conv3], 1))
-        # dec2 = self.dec2(torch.cat([dec3, conv2], 1))
-        # dec1 = self.dec1(torch.cat([dec2, conv1], 1))
-        # return F.sigmoid(self.final(dec1))
