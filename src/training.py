@@ -71,7 +71,7 @@ def test(epoch, model, criterion, test_loader):
 
     message = (
         f"Epoch: {epoch},"
-        f"Val: loss {np.mean(val_metrics['loss']):.3f}, IoU {np.mean(val_metrics['iou']):.3f}| "
+        f"Val: loss {np.mean(val_metrics['loss']):.3f}, IoU {np.mean(val_metrics['iou']):.3f} ** "
     )    
     logger.info(message)
 
