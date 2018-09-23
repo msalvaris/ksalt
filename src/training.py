@@ -17,8 +17,9 @@ def train(epoch, model, optimizer, criterion, train_loader):
     start = time.time()
     for step, (image, mask) in enumerate(train_loader):
 
-        image = image.type(torch.float).cuda()
-        mask_gpu = mask.type(torch.float).cuda()
+        with torch.cuda.device(0):
+            image = image.type(torch.float).cuda(async=True)
+            mask_gpu = mask.type(torch.float).cuda(async=True)
 
         optimizer.zero_grad()
         output = model(image)
@@ -51,9 +52,10 @@ def test(epoch, model, criterion, test_loader):
     val_metrics = defaultdict(list)
     start = time.time()
     for step, (image, mask) in enumerate(test_loader):
-        image = image.type(torch.float).cuda()
-        mask_gpu = mask.type(torch.float).cuda()
-
+        with torch.cuda.device(0):
+            image = image.type(torch.float).cuda(async=True)
+            mask_gpu = mask.type(torch.float).cuda(async=True)
+        
         with torch.no_grad():
             outputs = model(image)
         loss = criterion(outputs, mask_gpu)
