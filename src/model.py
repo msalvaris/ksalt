@@ -36,11 +36,12 @@ def update_state(state, epoch, eval_metric, metric_value, model, optimizer):
     state['optimizer'] = optimizer.state_dict()
     state['epoch'] = epoch
     state[eval_metric] = metric_value
-
+    best_key = f'best_{eval_metric}'
+    
     # update 
-    if metric_value > state[eval_metric]:
-        logger.info(f'{eval_metric} went from {state[eval_metric]} to {metric_value} >:)')
-        state[f'best_{eval_metric}'] = metric_value
+    if metric_value > state[best_key]:
+        logger.info(f'{eval_metric} went from {state[best_key]} to {metric_value} >:)')
+        state[best_key] = metric_value
         state['best_epoch'] = epoch
 
     return state
