@@ -8,15 +8,23 @@ import torch
 logger = logging.getLogger(__name__)
 
 
-def train(epoch, model, optimizer, criterion, train_loader):
+def train(epoch, model, optimizer, scheduler, criterion, train_loader, config):
     logger.info('Train {}'.format(epoch))
 
+    run_config = config['run_config']
+    optim_config = config['optim_config']
+    
     model.train()
 
     train_metrics = defaultdict(list)
     start = time.time()
     for step, (image, mask) in enumerate(train_loader):
 
+        if optim_config['scheduler'] == 'multistep':
+            scheduler.step(epoch - 1)
+        elif optim_config['scheduler'] == 'cosine':
+            scheduler.step()
+            
         with torch.cuda.device(0):
             image = image.type(torch.float).cuda(async=True)
             mask_gpu = mask.type(torch.float).cuda(async=True)
