@@ -1,0 +1,71 @@
+import logging
+from collections import defaultdict
+import time
+import numpy as np
+from metrics import my_iou_metric
+import torch
+
+logger = logging.getLogger(__name__)
+
+
+def train(epoch, model, optimizer, criterion, train_loader):
+    logger.info('Train {}'.format(epoch))
+
+    model.train()
+
+    train_metrics = defaultdict(list)
+    start = time.time()
+    for step, (image, mask) in enumerate(train_loader):
+
+        image = image.type(torch.float).cuda()
+        mask_gpu = mask.type(torch.float).cuda()
+
+        optimizer.zero_grad()
+        output = model(image)
+        loss = criterion(output, mask_gpu)
+
+        loss.backward()
+        optimizer.step()
+        
+        train_metrics['loss'].append(loss.item())
+        train_metrics['iou'].append(my_iou_metric(mask.numpy(), output.cpu().data.numpy()))
+
+        if step % 100 == 0:
+            message = (
+                f"Epoch: {epoch},"
+                f"Step: {step},"
+                f"Train: {np.mean(train_metrics['loss']):.3f},{np.mean(train_metrics['iou']):.3f}"
+            )
+            logger.info(message)
+
+    elapsed = time.time() - start
+    logger.info('Elapsed {:.2f}'.format(elapsed))
+
+
+def test(epoch, model, criterion, test_loader):
+    logger.info('Test {}'.format(epoch))
+
+    model.eval()
+
+    val_metrics = defaultdict(list)
+    start = time.time()
+    for step, (image, mask) in enumerate(test_loader):
+        image = image.type(torch.float).cuda()
+        mask_gpu = mask.type(torch.float).cuda()
+
+        with torch.no_grad():
+            outputs = model(image)
+        loss = criterion(outputs, mask_gpu)
+
+        val_metrics['loss'].append(loss.item())
+        val_metrics['iou'].append(my_iou_metric(mask.numpy(), outputs.cpu().data.numpy()))
+
+    message = (
+        f"Epoch: {epoch},"
+        f"Val: {np.mean(val_metrics['loss']):.3f},{np.mean(val_metrics['iou']):.3f}| "
+    )    
+    logger.info(message)
+
+    elapsed = time.time() - start
+    logger.info('Elapsed {:.2f}'.format(elapsed))
+    return val_metrics

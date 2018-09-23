@@ -88,9 +88,7 @@ def get_iou_vector(A, B):
         union = np.logical_or(t, p)
         iou = (np.sum(intersection > 0) + 1e-10) / (np.sum(union > 0) + 1e-10)
         thresholds = np.arange(0.5, 1, 0.05)
-        s = []
-        for thresh in thresholds:
-            s.append(iou > thresh)
+        s = [iou > thresh for thresh in thresholds]
         metric.append(np.mean(s))
 
     return np.mean(metric)
