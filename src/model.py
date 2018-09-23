@@ -1,6 +1,11 @@
 from git import Repo
 import os
+import torch
+import logging
+import shutil
+from pprint import pformat
 
+logger = logging.getLogger(__name__)
 
 def _ver():
     repo = Repo(search_parent_directories=True)
@@ -13,4 +18,30 @@ def model_path():
     if not os.path.exists(model_path):
         os.makedirs(model_path)
     return model_path
+
+
+def save_checkpoint(state, outdir=model_path()):
+    model_path = os.path.join(outdir, 'model_state.pth')
+    best_model_path = os.path.join(outdir, 'model_best_state.pth')
+    logger.debug(f"Saving to {model_path}")
+    torch.save(state, model_path)
+    if state['best_epoch'] == state['epoch']:
+        logger.debug(pformat(state, indent=2))
+        logger.debug(f"Saving to {best_model_path}")
+        shutil.copy(model_path, best_model_path)
+    
+
+def update_state(state, epoch, eval_metric, metric_value, model, optimizer):
+    state['state_dict'] = model.state_dict()
+    state['optimizer'] = optimizer.state_dict()
+    state['epoch'] = epoch
+    state[eval_metric] = metric_value
+
+    # update 
+    if metric_value > state[eval_metric]:
+        logger.info(f'{eval_metric} went from {state[eval_metric]} to {metric_value} >:)')
+        state[f'best_{eval_metric}'] = metric_value
+        state['best_epoch'] = epoch
+
+    return state
     
