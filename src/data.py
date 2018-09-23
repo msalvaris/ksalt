@@ -5,6 +5,7 @@ from toolz import compose
 import pandas as pd
 from PIL import Image
 from metrics import cov_to_class
+from torch.utils import data
 
 
 def training_images_path():
@@ -106,3 +107,26 @@ def rle_encode(im):
     runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
     runs[1::2] -= runs[::2]
     return ' '.join(str(x) for x in runs)
+
+
+class TGSSaltDataset(data.Dataset):
+    def __init__(self, x_data, y_data=None, is_test=False):
+        self._is_test = is_test
+        self._x_data = x_data
+        self._y_data = y_data
+
+    @property
+    def is_test(self):
+        return self._is_test
+
+    def __len__(self):
+        return len(self._x_data)
+
+    def __getitem__(self, index):
+        image = self._x_data[index]
+
+        if self.is_test:
+            return image
+        else:
+            mask = self._y_data[index]
+            return image, mask
