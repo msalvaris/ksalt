@@ -97,7 +97,7 @@ def get_iou_vector(A, B):
 
 
 def my_iou_metric(label, pred):
-    return tf.py_func(get_iou_vector, [label, pred > 0.5], tf.float64)
+    return get_iou_vector(label, pred > 0.5)
 
 
 def my_iou_metric_2(label, pred):
