@@ -269,6 +269,7 @@ class UNet(nn.Module):
         self.dec1 = ConvRelu(base_channels*2, base_channels)
 
         self.final = nn.Conv2d(base_channels, 1, kernel_size=1, )
+        self.sigmoid= nn.Sigmoid(1)
 
         # initialize weights
         self.apply(initialize_weights)
@@ -304,4 +305,4 @@ class UNet(nn.Module):
         dec3 = self.dec3(torch.cat([center, conv3], 1))
         dec2 = self.dec2(torch.cat([dec3, conv2], 1))
         dec1 = self.dec1(torch.cat([dec2, conv1], 1))
-        return nn.sigmoid(self.final(dec1))
+        return self.sigmoid(self.final(dec1))
