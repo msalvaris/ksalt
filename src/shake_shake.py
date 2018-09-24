@@ -256,7 +256,7 @@ class UNet(nn.Module):
         base_channels = config['base_channels']
         depth = config['depth']
 
-        self.shake_config = { config[key] for key in ('shake_forward', 'shake_backward', 'shake_image')}
+        self.shake_config = { key:config[key] for key in ('shake_forward', 'shake_backward', 'shake_image')}
 
         block = BasicBlock
         n_blocks_per_stage = (depth - 2) // 6
