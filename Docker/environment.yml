@@ -27,3 +27,4 @@ dependencies:
     - pydot
     - "--editable=git+https://github.com/szagoruyko/pytorchviz#egg=pytorchviz"
     - tensorboard
+    - tensorboardX
