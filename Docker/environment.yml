@@ -26,5 +26,7 @@ dependencies:
     - fire
     - pydot
     - "--editable=git+https://github.com/szagoruyko/pytorchviz#egg=pytorchviz"
+    - tensorflow # Required by tensorboard
     - tensorboard
     - tensorboardX
+    
