@@ -58,12 +58,11 @@ def create_optimizer(model_parameters, optim_config):
 
 def _ver():
     repo = Repo(search_parent_directories=True)
-    # repo.active_branch.commit.hexsha
-    return repo.active_branch.name
+    return repo.active_branch.name, repo.active_branch.commit.hexsha
 
 
 def tboard_log_path():
-    log_path = os.path.join(os.getenv('TBOARD_LOGS'), _ver())
+    log_path = os.path.join(os.getenv('TBOARD_LOGS'), *_ver())
     if not os.path.exists(log_path):
         os.makedirs(log_path)
     return log_path
