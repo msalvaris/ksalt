@@ -22,7 +22,8 @@ setup_volumes:=-v $(PWD):/workspace  \
 setup_environment:=--env DATA='/mnt/data' \
 	--env MODELS='/mnt/models' \
 	--env PYTHONPATH=$PYTHONPATH:/workspace/src \
-	--env KAGGLE_CONFIG_DIR=/kaggle 
+	--env KAGGLE_CONFIG_DIR=/kaggle \
+	--env TBOARD_LOGS=/mnt/models/logs
 
 
 help:
@@ -32,10 +33,13 @@ build:
 	docker build -t $(image_name) Docker
 
 run:
-	nvidia-docker run $(setup_volumes) $(setup_environment) -it $(image_name)
+	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(image_name)
 	
 notebook:
 	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -it $(image_name) bash -c "jupyter notebook --ip=0.0.0.0 --port=9999 --no-browser --allow-root"
+	
+tensorboard:
+	nvidia-docker run $(setup_volumes) $(setup_environment) -p 6006:6006 -it $(image_name) bash -c "tensorboard --logdir $TBOARD_LOGS"
 
 push:
 	docker push $(image_name)
@@ -73,10 +77,10 @@ clean-output: clean-model clean-submission
 
 clean-model:
 	$(eval branch_name:=$(shell git branch | grep \* | cut -d ' ' -f2))
-	rm $(MODELS)/branch_name/*.model
+	rm $(MODELS)/$(branch_name)/*.model
 
 clean-submission:
 	$(eval branch_name:=$(shell git branch | grep \* | cut -d ' ' -f2))
-	rm $(MODELS)/branch_name/*.csv
+	rm $(MODELS)/$(branch_name)/*.csv
 
 .PHONY: help build push
