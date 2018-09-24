@@ -289,33 +289,33 @@ class UNet(nn.Module):
             padding=1,
             bias=False)
         
-        self.rescentre = UConvResidual(2*n_channels[2], self.shake_config)
+        self.rescentre = UConvResidual(n_channels[2], self.shake_config)
         
-        self.deconv3 = nn.ConvTranspose2d(2*n_channels[2], n_channels[2],
+        self.deconv3 = nn.ConvTranspose2d(n_channels[2], n_channels[1],
                            kernel_size=3,
                            stride=2,
                            padding=1,
                            output_padding=1)
         
-        self.res3 = UConvResidual(n_channels[2], self.shake_config)
+        self.res3 = UConvResidual(n_channels[2]+n_channels[1], self.shake_config)
         
-        self.deconv2 = nn.ConvTranspose2d(n_channels[2], n_channels[1],
+        self.deconv2 = nn.ConvTranspose2d(n_channels[2]+n_channels[1], n_channels[1],
                                           kernel_size=3,
                                           stride=2,
                                           padding=1,
                                           output_padding=1)
         
-        self.res2 = UConvResidual(n_channels[1], self.shake_config)
+        self.res2 = UConvResidual(n_channels[1]+n_channels[1], self.shake_config)
 
-        self.deconv1 = nn.ConvTranspose2d(n_channels[1], n_channels[0],
+        self.deconv1 = nn.ConvTranspose2d(n_channels[1]+n_channels[1], n_channels[0],
                                           kernel_size=3,
                                           stride=2,
                                           padding=1,
                                           output_padding=1)
 
-        self.res1 = UConvResidual(n_channels[0], self.shake_config)
+        self.res1 = UConvResidual(2*n_channels[0], self.shake_config)
 
-        self.final = nn.Conv2d(n_channels[0], 1, kernel_size=1, )
+        self.final = nn.Conv2d(2*n_channels[0], 1, kernel_size=1, )
         self.sigmoid = nn.Sigmoid()
         self.apply(initialize_weights)
         
