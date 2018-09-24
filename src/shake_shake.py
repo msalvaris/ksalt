@@ -226,6 +226,27 @@ class DecoderBlock(nn.Module):
     def forward(self, x):
         return self.block(x)
 
+class UConvResidual(nn.Module):
+    def __init__(self, channels, config, n_blocks=2, stride=1):
+        super().__init__()
+        block = BasicBlock
+        self.stage = nn.Sequential()
+        self.shake_config = (config['shake_forward'],
+                             config['shake_backward'],
+                             config['shake_image'])
+        
+        for index in range(n_blocks):
+            block_name = 'block{}'.format(index + 1)
+            self.stage.add_module(block_name,
+                                 block(
+                                     channels,
+                                     channels,
+                                     stride=stride,
+                                     shake_config=self.shake_config))
+            
+    def forward(self, x):
+        return self.stage(x)
+
 
 class UNet(nn.Module):
     def __init__(self, config):
@@ -262,17 +283,79 @@ class UNet(nn.Module):
             n_channels[1], n_channels[2], n_blocks_per_stage, block, stride=2)
 
         self.pool = nn.MaxPool2d(2, 2)
+        self.centre = nn.Conv2d(
+            n_channels[2],
+            2*n_channels[2],
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias=False)
+        
+        self.rescentre = UConvResidual(2*n_channels[2], self.shake_config)
+        
+        self.deconv3 = nn.ConvTranspose2d(2*n_channels[2], n_channels[2],
+                           kernel_size=3,
+                           stride=2,
+                           padding=1,
+                           output_padding=1)
+        
+        self.res3 = UConvResidual(n_channels[2], self.shake_config)
+        
+        self.deconv2 = nn.ConvTranspose2d(n_channels[2], n_channels[1],
+                                          kernel_size=3,
+                                          stride=2,
+                                          padding=1,
+                                          output_padding=1)
+        
+        self.res2 = UConvResidual(n_channels[1], self.shake_config)
 
-        self.center = DecoderBlock(n_channels[2], n_channels[2], n_channels[1])
-        self.dec3 = DecoderBlock(n_channels[2]+n_channels[1], n_channels[1], n_channels[1])
-        self.dec2 = DecoderBlock(n_channels[1]+n_channels[1], n_channels[1], n_channels[0])
-        self.dec1 = ConvRelu(base_channels*2, base_channels)
+        self.deconv1 = nn.ConvTranspose2d(n_channels[1], n_channels[0],
+                                          kernel_size=3,
+                                          stride=2,
+                                          padding=1,
+                                          output_padding=1)
 
-        self.final = nn.Conv2d(base_channels, 1, kernel_size=1, )
-        self.sigmoid= nn.Sigmoid()
+        self.res1 = UConvResidual(n_channels[0], self.shake_config)
 
-        # initialize weights
+        self.final = nn.Conv2d(n_channels[0], 1, kernel_size=1, )
+        self.sigmoid = nn.Sigmoid()
         self.apply(initialize_weights)
+        
+        # dropout
+        # conv 2d
+        
+        #res 1
+        # batch norm
+        # relu
+        # conv2d
+        # batch norm
+        # relu
+        # conv2d
+        # add
+
+        #re 2
+        # batch norm
+        # relu
+        # conv2d
+        # batch norm
+        # relu
+        # conv2d
+        # add
+        # batch norm
+        # relu
+
+        
+        # 
+        # # self.center = DecoderBlock(n_channels[2], n_channels[2], n_channels[1])
+        # self.dec3 = DecoderBlock(n_channels[2]+n_channels[1], n_channels[1], n_channels[1])
+        # self.dec2 = DecoderBlock(n_channels[1]+n_channels[1], n_channels[1], n_channels[0])
+        # self.dec1 = ConvRelu(base_channels*2, base_channels)
+        # 
+        # self.final = nn.Conv2d(base_channels, 1, kernel_size=1, )
+        # self.sigmoid= nn.Sigmoid()
+        # 
+        # # initialize weights
+        # self.apply(initialize_weights)
         
 
     def _make_stage(self, in_channels, out_channels, n_blocks, block, stride):
@@ -301,8 +384,18 @@ class UNet(nn.Module):
         conv1 = self.stage1(x)
         conv2 = self.stage2(conv1)
         conv3 = self.stage3(conv2)
+        
         center = self.center(self.pool(conv3))
-        dec3 = self.dec3(torch.cat([center, conv3], 1))
-        dec2 = self.dec2(torch.cat([dec3, conv2], 1))
-        dec1 = self.dec1(torch.cat([dec2, conv1], 1))
-        return self.sigmoid(self.final(dec1))
+        rescentre = self.rescentre(center)
+        deconv3 = self.deconv3(rescentre)
+        uconv3 = self.res3(torch.cat([deconv3, conv3], 1))
+        deconv2 = self.deconv2(uconv3)
+        uconv2 = self.res2(torch.cat([deconv2, conv2], 1))
+        deconv1 = self.deconv1(uconv2)
+        uconv1 = self.res1(torch.cat([deconv1, conv1], 1))
+        
+        
+        # dec3 = self.dec3(torch.cat([center, conv3], 1))
+        # dec2 = self.dec2(torch.cat([dec3, conv2], 1))
+        # dec1 = self.dec1(torch.cat([dec2, conv1], 1))
+        return self.sigmoid(self.final(uconv1))
