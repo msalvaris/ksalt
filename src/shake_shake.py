@@ -253,12 +253,10 @@ class UNet(nn.Module):
         super().__init__()
 
         input_shape = config['input_shape']
-
         base_channels = config['base_channels']
         depth = config['depth']
-        self.shake_config = (config['shake_forward'],
-                             config['shake_backward'],
-                             config['shake_image'])
+
+        self.shake_config = { config[key] for key in 'shake_forward', 'shake_backward', 'shake_image'}
 
         block = BasicBlock
         n_blocks_per_stage = (depth - 2) // 6
