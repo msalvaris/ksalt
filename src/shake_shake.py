@@ -383,8 +383,8 @@ class UNet(nn.Module):
         conv2 = self.stage2(conv1)
         conv3 = self.stage3(conv2)
         
-        center = self.center(self.pool(conv3))
-        rescentre = self.rescentre(center)
+        centre = self.centre(self.pool(conv3))
+        rescentre = self.rescentre(centre)
         deconv3 = self.deconv3(rescentre)
         uconv3 = self.res3(torch.cat([deconv3, conv3], 1))
         deconv2 = self.deconv2(uconv3)
