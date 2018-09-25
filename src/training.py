@@ -16,7 +16,7 @@ def create_image_writer(summary_writer):
     return write_to
     
 
-def train(epoch, model, optimizer, scheduler, criterion, train_loader, config, summary_writer=None):
+def train(epoch, model, optimizer, scheduler, criterion, train_loader, config, summary_writer=None, global_counter=None):
     logger.info('Train {}'.format(epoch))
 
     run_config = config['run_config']
@@ -28,7 +28,8 @@ def train(epoch, model, optimizer, scheduler, criterion, train_loader, config, s
     train_metrics = defaultdict(list)
     start = time.time()
     for step, (image, mask) in enumerate(train_loader):
-        train.global_step+=1
+        global_step = next(global_counter) if global_counter is not None else step
+       
         if summary_writer is not None and step == 0:
             image_writer(image, 'Train/Image', epoch, normalize=True)
 
@@ -39,7 +40,7 @@ def train(epoch, model, optimizer, scheduler, criterion, train_loader, config, s
 
         if summary_writer is not None:
             summary_writer.add_scalar('Train/LearningRate',
-                                      scheduler.get_lr()[0], train.global_step)
+                                      scheduler.get_lr()[0], global_step)
             
         with torch.cuda.device(0):
             image = image.type(torch.float).cuda(async=True)
@@ -61,8 +62,8 @@ def train(epoch, model, optimizer, scheduler, criterion, train_loader, config, s
             image_writer(output_cpu, 'Train/Prediction', epoch)
 
         if summary_writer:
-            summary_writer.add_scalar('Train/RunningLoss', train_metrics['loss'][-1], train.global_step)
-            summary_writer.add_scalar('Train/RunningIoU', train_metrics['iou'][-1], train.global_step)
+            summary_writer.add_scalar('Train/RunningLoss', train_metrics['loss'][-1], global_step)
+            summary_writer.add_scalar('Train/RunningIoU', train_metrics['iou'][-1], global_step)
 
         if step % 100 == 0:
             message = (
