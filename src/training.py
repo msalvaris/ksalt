@@ -55,7 +55,7 @@ def train(epoch, model, optimizer, scheduler, criterion, train_loader, config, s
 
         output_cpu = output.cpu()
         train_metrics['loss'].append(loss.item())
-        train_metrics['iou'].append(my_iou_metric(mask.numpy(), output_cpu.numpy()))
+        train_metrics['iou'].append(my_iou_metric(mask.numpy(), output_cpu.data.numpy()))
         
         if summary_writer is not None and step == 0:
             image_writer(mask, 'Train/Mask', epoch)
