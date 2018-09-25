@@ -20,9 +20,12 @@ def model_path():
     return model_path
 
 
-def save_checkpoint(state, outdir=model_path()):
-    model_path = os.path.join(outdir, 'model_state.pth')
-    best_model_path = os.path.join(outdir, 'model_best_state.pth')
+def save_checkpoint(state, 
+                    outdir=model_path(), 
+                    model_filename='model_state.pth', 
+                    best_model_filename='model_best_state.pth'):
+    model_path = os.path.join(outdir, model_filename)
+    best_model_path = os.path.join(outdir, best_model_filename)
     logger.debug(f"Saving to {model_path}")
     torch.save(state, model_path)
     if state['best_epoch'] == state['epoch']:
