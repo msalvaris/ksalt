@@ -319,42 +319,6 @@ class UNet(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.apply(initialize_weights)
         
-        # dropout
-        # conv 2d
-        
-        #res 1
-        # batch norm
-        # relu
-        # conv2d
-        # batch norm
-        # relu
-        # conv2d
-        # add
-
-        #re 2
-        # batch norm
-        # relu
-        # conv2d
-        # batch norm
-        # relu
-        # conv2d
-        # add
-        # batch norm
-        # relu
-
-        
-        # 
-        # # self.center = DecoderBlock(n_channels[2], n_channels[2], n_channels[1])
-        # self.dec3 = DecoderBlock(n_channels[2]+n_channels[1], n_channels[1], n_channels[1])
-        # self.dec2 = DecoderBlock(n_channels[1]+n_channels[1], n_channels[1], n_channels[0])
-        # self.dec1 = ConvRelu(base_channels*2, base_channels)
-        # 
-        # self.final = nn.Conv2d(base_channels, 1, kernel_size=1, )
-        # self.sigmoid= nn.Sigmoid()
-        # 
-        # # initialize weights
-        # self.apply(initialize_weights)
-        
 
     def _make_stage(self, in_channels, out_channels, n_blocks, block, stride):
         stage = nn.Sequential()
@@ -392,8 +356,4 @@ class UNet(nn.Module):
         deconv1 = self.deconv1(uconv2)
         uconv1 = self.res1(torch.cat([deconv1, conv1], 1))
         
-        
-        # dec3 = self.dec3(torch.cat([center, conv3], 1))
-        # dec2 = self.dec2(torch.cat([dec3, conv2], 1))
-        # dec1 = self.dec1(torch.cat([dec2, conv1], 1))
         return self.sigmoid(self.final(uconv1))
