@@ -193,7 +193,7 @@ class UNetResNet(nn.Module):
         self.drop_res1 = DropResidualLayer(base_channels*2, base_channels, dropout_p=dropout_p)
 
         self.final_conv = nn.Conv2d(base_channels, 1, kernel_size=1, stride=1, padding=0, bias=False)
-        self.sigmoid = nn.Sigmoid()
+        self.final_activation = nn.Sigmoid()
         self.apply(initialize_weights)
     
     def forward(self, x):
@@ -215,7 +215,7 @@ class UNetResNet(nn.Module):
         dec1 = self.dec1(drop_res2)
         drop_res1 = self.drop_res1(torch.cat([dec1, enc1], 1))
         final_conv = self.final_conv(drop_res1)
-        return self.sigmoid(final_conv)
+        return self.final_activation(final_conv)
     
     
 
