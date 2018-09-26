@@ -93,7 +93,7 @@ class EncodingLayer(nn.Module):
         self.res2 = PreactivationResidualBlock(out_channels, out_channels)
         self.bn = nn.BatchNorm2d(out_channels)
         # relu
-        self.max = nn.MaxPool2D(2)
+        self.max = nn.MaxPool2d(2)
         self.drop = nn.Dropout2d(p=dropout_p)
     
     def forward(self, x):
