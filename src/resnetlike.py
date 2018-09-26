@@ -83,18 +83,26 @@ class PreactivationResidualBlock(nn.Module):
         x = self.conv2(x)
         
         return x+residual
+
+class MaxDropLayer(nn.Module):
+    def __init__(self, dropout_p=0.5):
+        super(MaxDropLayer, self).__init__()
+        self.max = nn.MaxPool2d(2)
+        self.drop = nn.Dropout2d(p=dropout_p)
         
+    def forward(self, x):
+        return pipe(x,
+                    self.max,
+                    self.drop)
 
 class EncodingLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, dropout_p=0.5):
+    def __init__(self, in_channels, out_channels):
         super(EncodingLayer, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
         self.res1 = PreactivationResidualBlock(out_channels, out_channels)
         self.res2 = PreactivationResidualBlock(out_channels, out_channels)
         self.bn = nn.BatchNorm2d(out_channels)
         # relu
-        self.max = nn.MaxPool2d(2)
-        self.drop = nn.Dropout2d(p=dropout_p)
     
     def forward(self, x):
         return pipe(x,
@@ -102,9 +110,7 @@ class EncodingLayer(nn.Module):
                     self.res1,
                     self.res2,
                     self.bn,
-                    F.relu,
-                    self.max,
-                    self.drop)
+                    F.relu)
 
 
 class ResidualLayer(nn.Module):
@@ -142,9 +148,17 @@ class UNetResNet(nn.Module):
         super(UNetResNet, self).__init__()
 
         self.enc1 = EncodingLayer(in_channels, base_channels)
+        self.max1 = MaxDropLayer(dropout_p=dropout_p)
+
         self.enc2 = EncodingLayer(base_channels, base_channels * 2)
+        self.max2 = MaxDropLayer(dropout_p=dropout_p)
+
         self.enc3 = EncodingLayer(base_channels * 2, base_channels * 4)
+        self.max3 = MaxDropLayer(dropout_p=dropout_p)
+        
         self.enc4 = EncodingLayer(base_channels * 4, base_channels * 8)
+        self.max4 = MaxDropLayer(dropout_p=dropout_p)
+        
         self.middle = ResidualLayer(base_channels * 8, base_channels * 16)
         self.dec4 = nn.ConvTranspose2d(base_channels * 16, base_channels * 8,
                                        kernel_size=3,
@@ -184,10 +198,14 @@ class UNetResNet(nn.Module):
     
     def forward(self, x):
         enc1 = self.enc1(x)
-        enc2 = self.enc2(enc1)
-        enc3 = self.enc3(enc2)
-        enc4 = self.enc4(enc3)
-        middle = self.middle(enc4)
+        maxd1 = self.max1(enc1)
+        enc2 = self.enc2(maxd1)
+        maxd2 = self.max2(enc2)
+        enc3 = self.enc3(maxd2)
+        maxd3 = self.max3(enc3)
+        enc4 = self.enc4(maxd3)
+        maxd4 = self.max4(enc4)
+        middle = self.middle(maxd4)
         dec4 = self.dec4(middle)
         drop_res4 = self.drop_res4(torch.cat([dec4, enc4], 1))
         dec3 = self.dec4(drop_res4)
