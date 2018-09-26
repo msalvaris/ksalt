@@ -211,9 +211,9 @@ class UNetResNet(nn.Module):
         dec3 = self.dec3(drop_res4)
         drop_res3 = self.drop_res3(torch.cat([dec3, enc3], 1))
         dec2 = self.dec2(drop_res3)
-        drop_res2 = self.drop_res4(torch.cat([dec2, enc2], 1))
+        drop_res2 = self.drop_res2(torch.cat([dec2, enc2], 1))
         dec1 = self.dec1(drop_res2)
-        drop_res1 = self.drop_res4(torch.cat([dec1, enc1], 1))
+        drop_res1 = self.drop_res1(torch.cat([dec1, enc1], 1))
         final_conv = self.final_conv(drop_res1)
         return self.sigmoid(final_conv)
     
