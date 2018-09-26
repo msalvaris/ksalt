@@ -86,11 +86,11 @@ class PreactivationResidualBlock(nn.Module):
         
 
 class EncodingLayer(nn.Module):
-    def __init__(self, channels, dropout_p=0.5):
+    def __init__(self, in_channels, out_channels, dropout_p=0.5):
         super(EncodingLayer, self).__init__()
-        self.conv = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=False)
-        self.res1 = PreactivationResidualBlock(channels, channels)
-        self.res2 = PreactivationResidualBlock(channels, channels)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.res1 = PreactivationResidualBlock(out_channels, out_channels)
+        self.res2 = PreactivationResidualBlock(out_channels, out_channels)
         self.bn = nn.BatchNorm2d()
         # relu
         self.max = nn.MaxPool2D(2)
@@ -108,11 +108,11 @@ class EncodingLayer(nn.Module):
 
 
 class ResidualLayer(nn.Module):
-    def __init__(self, channels):
+    def __init__(self, in_channels, out_channels):
         super(ResidualLayer, self).__init__()
-        self.conv = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=False)
-        self.res1 = PreactivationResidualBlock(channels, channels)
-        self.res2 = PreactivationResidualBlock(channels, channels)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.res1 = PreactivationResidualBlock(out_channels, out_channels)
+        self.res2 = PreactivationResidualBlock(out_channels, out_channels)
         self.bn = nn.BatchNorm2d()
         # relu
     
@@ -126,10 +126,10 @@ class ResidualLayer(nn.Module):
     
 
 class DropResidualLayer(nn.Module):
-    def __init__(self, channels, dropout_p=0.5):
+    def __init__(self, in_channels, out_channels, dropout_p=0.5):
         super(DropResidualLayer, self).__init__()
         self.drop = nn.Dropout2d(p=dropout_p)
-        self.res = ResidualLayer(channels)
+        self.res = ResidualLayer(in_channels, out_channels)
     
     def forward(self, x):
         return pipe(x,
@@ -138,47 +138,47 @@ class DropResidualLayer(nn.Module):
         
     
 class UNetResNet(nn.Module):
-    def __init__(self, channels, dropout_p=0.5):
+    def __init__(self, in_channels, base_channels, dropout_p=0.5):
         super(UNetResNet, self).__init__()
 
-        self.enc1 = EncodingLayer(channels)
-        self.enc2 = EncodingLayer(channels*2)
-        self.enc3 = EncodingLayer(channels*4)
-        self.enc4 = EncodingLayer(channels*8)
-        self.middle = ResidualLayer(channels*16)
-        self.dec4 = nn.ConvTranspose2d(channels*16, channels*8,
-                           kernel_size=3,
-                           stride=2,
-                           padding=1,
-                           output_padding=0)
+        self.enc1 = EncodingLayer(in_channels, base_channels)
+        self.enc2 = EncodingLayer(base_channels, base_channels * 2)
+        self.enc3 = EncodingLayer(base_channels * 2, base_channels * 4)
+        self.enc4 = EncodingLayer(base_channels * 4, base_channels * 8)
+        self.middle = ResidualLayer(base_channels * 8, base_channels * 16)
+        self.dec4 = nn.ConvTranspose2d(base_channels * 16, base_channels * 8,
+                                       kernel_size=3,
+                                       stride=2,
+                                       padding=1,
+                                       output_padding=0)
         #concat dec4 + enc4
-        self.drop_res4 = DropResidualLayer(channels*8, dropout_p=dropout_p/2)
+        self.drop_res4 = DropResidualLayer(base_channels * 8 * 2, base_channels * 8, dropout_p=dropout_p / 2)
 
-        self.dec3 = nn.ConvTranspose2d(channels * 8, channels * 4,
+        self.dec3 = nn.ConvTranspose2d(base_channels * 8, base_channels * 4,
                                        kernel_size=3,
                                        stride=2,
                                        padding=0,
                                        output_padding=0)
         # concat dec3 + enc3
-        self.drop_res3 = DropResidualLayer(channels * 4, dropout_p=dropout_p)
+        self.drop_res3 = DropResidualLayer(base_channels * 4 * 2, base_channels * 4, dropout_p=dropout_p)
 
-        self.dec2 = nn.ConvTranspose2d(channels * 4, channels * 2,
+        self.dec2 = nn.ConvTranspose2d(base_channels * 4, base_channels * 2,
                                        kernel_size=3,
                                        stride=2,
                                        padding=1,
                                        output_padding=0)
         # concat dec2 + enc2
-        self.drop_res2 = DropResidualLayer(channels * 2, dropout_p=dropout_p)
+        self.drop_res2 = DropResidualLayer(base_channels * 2 * 2, base_channels * 2 , dropout_p=dropout_p)
 
-        self.dec1 = nn.ConvTranspose2d(channels * 2, channels,
+        self.dec1 = nn.ConvTranspose2d(base_channels * 2, base_channels,
                                        kernel_size=3,
                                        stride=2,
                                        padding=0,
                                        output_padding=0)
         # concat dec1 + enc1
-        self.drop_res1 = DropResidualLayer(channels, dropout_p=dropout_p)
+        self.drop_res1 = DropResidualLayer(base_channels, base_channels, dropout_p=dropout_p)
 
-        self.final_conv = nn.Conv2d(channels, 1, kernel_size=1, stride=1, padding=1, bias=False)
+        self.final_conv = nn.Conv2d(base_channels, 1, kernel_size=1, stride=1, padding=1, bias=False)
         self.sigmoid = nn.Sigmoid()
         self.apply(initialize_weights)
     
