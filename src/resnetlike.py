@@ -64,11 +64,11 @@ class ResNeXtBottleneck(nn.Module):
 class PreactivationResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(PreactivationResidualBlock, self).__init__()
-        self.bn1 = nn.BatchNorm2d()
+        self.bn1 = nn.BatchNorm2d(in_channels)
         # relu
         # Conv block 1
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d()
+        self.bn2 = nn.BatchNorm2d(out_channels)
         # relu
         # Conv block 2
         self.conv2 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
@@ -91,7 +91,7 @@ class EncodingLayer(nn.Module):
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
         self.res1 = PreactivationResidualBlock(out_channels, out_channels)
         self.res2 = PreactivationResidualBlock(out_channels, out_channels)
-        self.bn = nn.BatchNorm2d()
+        self.bn = nn.BatchNorm2d(out_channels)
         # relu
         self.max = nn.MaxPool2D(2)
         self.drop = nn.Dropout2d(p=dropout_p)
@@ -113,7 +113,7 @@ class ResidualLayer(nn.Module):
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
         self.res1 = PreactivationResidualBlock(out_channels, out_channels)
         self.res2 = PreactivationResidualBlock(out_channels, out_channels)
-        self.bn = nn.BatchNorm2d()
+        self.bn = nn.BatchNorm2d(out_channels)
         # relu
     
     def forward(self, x):
