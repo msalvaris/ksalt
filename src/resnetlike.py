@@ -190,7 +190,7 @@ class UNetResNet(nn.Module):
                                        padding=0,
                                        output_padding=0)
         # concat dec1 + enc1
-        self.drop_res1 = DropResidualLayer(base_channels, base_channels, dropout_p=dropout_p)
+        self.drop_res1 = DropResidualLayer(base_channels*2, base_channels, dropout_p=dropout_p)
 
         self.final_conv = nn.Conv2d(base_channels, 1, kernel_size=1, stride=1, padding=1, bias=False)
         self.sigmoid = nn.Sigmoid()
