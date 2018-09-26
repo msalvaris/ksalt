@@ -164,7 +164,7 @@ class UNetResNet(nn.Module):
                                        kernel_size=3,
                                        stride=2,
                                        padding=1,
-                                       output_padding=0)
+                                       output_padding=1)
         #concat dec4 + enc4
         self.drop_res4 = DropResidualLayer(base_channels * 8 * 2, base_channels * 8, dropout_p=dropout_p / 2)
 
@@ -180,7 +180,7 @@ class UNetResNet(nn.Module):
                                        kernel_size=3,
                                        stride=2,
                                        padding=1,
-                                       output_padding=0)
+                                       output_padding=1)
         # concat dec2 + enc2
         self.drop_res2 = DropResidualLayer(base_channels * 2 * 2, base_channels * 2 , dropout_p=dropout_p)
 
