@@ -29,4 +29,6 @@ dependencies:
     - tensorflow # Required by tensorboard
     - tensorboard
     - tensorboardX
+    - jupytext
+    
     
