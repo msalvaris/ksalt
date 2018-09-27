@@ -36,7 +36,7 @@ run:
 	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(image_name)
 	
 notebook:
-	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(image_name) bash -c "jupyter notebook --ip=0.0.0.0 --port=9999 --no-browser --allow-root"
+	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(image_name) bash -c "jupyter notebook"
 	
 tensorboard:
 	nvidia-docker run $(setup_volumes) $(setup_environment) -p 6006:6006 -it $(image_name) bash -c "tensorboard $(FLAGS)"
