@@ -220,8 +220,6 @@ val_data_loader = data.DataLoader(
 
 config["optim_config"]["steps_per_epoch"] = len(train_data_loader)
 
-optimizer, scheduler = create_optimizer(model.parameters(), config["optim_config"])
-
 # +
 history = defaultdict(list)
 loss_fn = torch.nn.BCELoss()
@@ -285,7 +283,6 @@ ax_iou.legend()
 filename = os.path.join(model_path(), "model_best_state.pth")
 checkpoint = torch.load(filename)
 model.load_state_dict(checkpoint["state_dict"])
-optimizer.load_state_dict(checkpoint["optimizer"])
 
 
 def predict_tta(model, image):  # predict both orginal and reflect x
