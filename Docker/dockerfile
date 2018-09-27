@@ -46,6 +46,7 @@ RUN echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu
 	apt-get install -y --no-install-recommends azcopy
 
 COPY environment.yml .
+COPY jupyter_notebook_config.py /root/.jupyter/
 
 ENV ENV_NAME=py3.6
 RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
