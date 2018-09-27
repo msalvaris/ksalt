@@ -1,6 +1,6 @@
 import numpy as np
 from itertools import  filterfalse
-# import tensorflow as tf
+from toolz import curry
 
 
 def cov_to_class(val):
@@ -94,13 +94,10 @@ def get_iou_vector(A, B):
 
     return np.mean(metric)
 
+@curry
+def my_iou_metric(label, pred, threshold=0.5):
+    return get_iou_vector(label, pred > threshold)
 
-def my_iou_metric(label, pred):
-    return get_iou_vector(label, pred > 0.5)
-
-
-def my_iou_metric_2(label, pred):
-    return tf.py_func(get_iou_vector, [label, pred > 0], tf.float64)
 
 
 def mean(l, ignore_nan=False, empty=0):
