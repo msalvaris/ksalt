@@ -68,7 +68,6 @@ import torch
 
 from torch.utils import data
 
-# from shake_shake import Network, UNet
 from resnetlike import UNetResNet
 from training import train, test
 from collections import defaultdict
