@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import  filterfalse
 # import tensorflow as tf
 
 
@@ -100,3 +101,49 @@ def my_iou_metric(label, pred):
 
 def my_iou_metric_2(label, pred):
     return tf.py_func(get_iou_vector, [label, pred > 0], tf.float64)
+
+
+def mean(l, ignore_nan=False, empty=0):
+    """
+    nanmean compatible with generators.
+    
+    Note: Taken from https://raw.githubusercontent.com/bermanmaxim/LovaszSoftmax/master/pytorch/lovasz_losses.py
+    """
+    l = iter(l)
+    if ignore_nan:
+        l = filterfalse(np.isnan, l)
+    try:
+        n = 1
+        acc = next(l)
+    except StopIteration:
+        if empty == 'raise':
+            raise ValueError('Empty mean')
+        return empty
+    for n, v in enumerate(l, 2):
+        acc += v
+    if n == 1:
+        return acc
+    return acc / n
+
+def iou(preds, labels, C, EMPTY=1., ignore=None, per_image=False):
+    """
+    Array of IoU for each (non ignored) class
+    
+    Note: Taken from https://raw.githubusercontent.com/bermanmaxim/LovaszSoftmax/master/pytorch/lovasz_losses.py
+    """
+    if not per_image:
+        preds, labels = (preds,), (labels,)
+    ious = []
+    for pred, label in zip(preds, labels):
+        iou = []    
+        for i in range(C):
+            if i != ignore: # The ignored label is sometimes among predicted classes (ENet - CityScapes)
+                intersection = ((label == i) & (pred == i)).sum()
+                union = ((label == i) | ((pred == i) & (label != ignore))).sum()
+                if not union:
+                    iou.append(EMPTY)
+                else:
+                    iou.append(float(intersection) / union)
+        ious.append(iou)
+    ious = map(mean, zip(*ious)) # mean accross images if per_image
+    return 100 * np.array(ious)
