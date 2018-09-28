@@ -143,4 +143,4 @@ def iou(preds, labels, C, EMPTY=1., ignore=None, per_image=False):
                     iou.append(float(intersection) / union)
         ious.append(iou)
     ious = map(mean, zip(*ious)) # mean accross images if per_image
-    return 100 * np.array(ious)
+    return 100 * np.array(list(ious))
