@@ -88,9 +88,14 @@ def plot_predictions(
         ax.text(
             1, 1, train_df.loc[idx].coverage_class, color="black", ha="left", va="top"
         )
-        if 'iou' in train_df:
+        if "iou" in train_df:
             ax.text(
-                img_size_ori - 1, img_size_ori-1, np.round(train_df.loc[idx].iou, decimals=2), color="black", ha="right", verticalalignment="baseline"
+                img_size_ori - 1,
+                img_size_ori - 1,
+                np.round(train_df.loc[idx].iou, decimals=2),
+                color="black",
+                ha="right",
+                verticalalignment="baseline",
             )
         ax.set_yticklabels([])
         ax.set_xticklabels([])
@@ -117,7 +122,7 @@ def plot_poor_predictions(
     reindex_series = pd.Series(range(len(image_ids)), index=image_ids)
     image_ids = iou_series[iou_series <= iou_threshold].index
     predictions = np.array([predictions[i] for i in reindex_series.loc[image_ids]])
-    train_df['iou'] = iou_series
+    train_df["iou"] = iou_series
     plot_predictions(
         train_df,
         predictions,
