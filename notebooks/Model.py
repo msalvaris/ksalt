@@ -42,28 +42,20 @@ from sklearn.model_selection import train_test_split
 
 from torch import nn
 
-from tqdm import tqdm
-from torch.nn import Sequential
-
 # + {"papermill": {"duration": 0.098801, "end_time": "2018-09-17T13:01:47.892280", "exception": false, "start_time": "2018-09-17T13:01:47.793479", "status": "completed"}, "tags": []}
-from image_processing import upsample, downsample
-from data import prepare_data, test_images_path, load_images_as_arrays, TGSSaltDataset
+from image_processing import upsample
+from data import prepare_data, TGSSaltDataset
 from visualisation import (
     plot_coverage_and_coverage_class,
     scatter_coverage_and_coverage_class,
     plot_depth_distributions,
-    plot_predictions,
     plot_images,
 )
 from model import model_path, save_checkpoint, update_state
-from metrics import iou_metric_batch, my_iou_metric
-from toolz import compose
-from data import rle_encode
 import datetime
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
 import torch
 
 from torch.utils import data
@@ -78,7 +70,7 @@ import uuid
 import itertools as it
 from operator import itemgetter
 import shutil
-from losses import lovasz_hinge
+from tensorboardx import SummaryWriter
 
 # -
 
@@ -236,7 +228,6 @@ for cycle in range(num_cycles):  # Cosine annealing with warm restarts
             scheduler,
             loss_fn,
             train_data_loader,
-            config,
             summary_writer=summary_writer,
             global_counter=global_counter,
         )
