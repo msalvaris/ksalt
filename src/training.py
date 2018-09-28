@@ -47,7 +47,9 @@ def train(
     start = time.time()
     for step, (image, mask) in enumerate(train_loader):
         global_step = next(global_counter) if global_counter is not None else step
-        scheduler.step()
+        
+        if isinstance(scheduler, torch.optim.lr_scheduler.LambdaLR):
+            scheduler.step()
 
         if summary_writer is not None:
             summary_writer.add_scalar(
