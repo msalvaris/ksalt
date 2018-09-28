@@ -4,6 +4,7 @@ import torch
 import logging
 import shutil
 from pprint import pformat
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -48,4 +49,17 @@ def update_state(state, epoch, eval_metric, metric_value, model, optimizer):
         state['best_epoch'] = epoch
 
     return state
-    
+
+
+def predict_tta(model, image):  # predict both orginal and reflect x
+    with torch.no_grad():
+        image_reflect = np.flip(image.numpy(), axis=3).copy()
+        with torch.cuda.device(0):
+            image_gpu = image.type(torch.float).cuda()
+            image_reflect_gpu = torch.as_tensor(image_reflect).type(torch.float).cuda()
+
+        outputs = model(image_gpu)
+        outputs_reflect = model(image_reflect_gpu)
+        return (
+            outputs.cpu().numpy() + np.flip(outputs_reflect.cpu().numpy(), axis=3)
+        ) / 2
