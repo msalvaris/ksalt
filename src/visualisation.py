@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-
+import numpy as np
 from metrics import _thresholded_iou_for
 
 
@@ -90,7 +90,7 @@ def plot_predictions(
         )
         if 'iou' in train_df:
             ax.text(
-                1, 1, train_df.loc[idx].iou, color="black", ha="right", va="bottom"
+                1, 1, np.round(train_df.loc[idx].iou, decimals=2), color="black", ha="right"
             )
         ax.set_yticklabels([])
         ax.set_xticklabels([])
