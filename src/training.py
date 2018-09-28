@@ -52,8 +52,9 @@ def train(
             scheduler.step()
 
         if summary_writer is not None:
+            lr=optimizer.param_groups[0]['lr'] #scheduler.get_lr()[0]
             summary_writer.add_scalar(
-                "Train/LearningRate", scheduler.get_lr()[0], global_step
+                "Train/LearningRate", lr, global_step
             )
             if step == 0:
                 image_writer(image, "Train/Image", epoch, normalize=True)
