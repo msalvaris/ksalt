@@ -33,28 +33,13 @@ from sklearn.model_selection import train_test_split
 
 from torch import nn
 
-from tqdm import tqdm
-from torch.nn import Sequential
-
 # +
-from image_processing import upsample, downsample
-from data import prepare_data, test_images_path, load_images_as_arrays, TGSSaltDataset
-from visualisation import (
-    plot_coverage_and_coverage_class,
-    scatter_coverage_and_coverage_class,
-    plot_depth_distributions,
-    plot_predictions,
-    plot_images,
-)
+from data import prepare_data, TGSSaltDataset
 from model import model_path, save_checkpoint, update_state
-from metrics import iou_metric_batch, my_iou_metric
-from toolz import compose
-from data import rle_encode
 import datetime
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
 import torch
 
 from torch.utils import data
@@ -70,6 +55,7 @@ import itertools as it
 from operator import itemgetter
 import shutil
 from losses import lovasz_hinge
+from metrics import my_iou_metric
 # -
 
 now = datetime.datetime.now()
@@ -160,9 +146,19 @@ val_data_loader = data.DataLoader(
     drop_last=False,
 )
 
+state = {
+    "state_dict": None,
+    "optimizer": None,
+    "epoch": 0,
+    "val_iou": 0,
+    "best_val_iou": 0,
+    "best_epoch": 0,
+}
+
 optim_config["steps_per_epoch"] = len(train_data_loader)
 
 # +
+metrics=(('iou', my_iou_metric(threshold=0)),)
 lovasz_history = defaultdict(list)
 loss_fn = lovasz_hinge
 
@@ -180,7 +176,6 @@ for cycle in range(num_cycles):  # Cosine annealing with warm restarts
             scheduler,
             loss_fn,
             train_data_loader,
-            config,
             summary_writer=summary_writer,
             global_counter=global_counter,
             metrics_funcs=metrics,

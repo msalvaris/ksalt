@@ -29,25 +29,18 @@ import seaborn as sns
 
 sns.set_style("white")
 
-from sklearn.model_selection import train_test_split
-
 from torch import nn
 
 from tqdm import tqdm
-from torch.nn import Sequential
 
 # +
-from image_processing import upsample, downsample
-from data import prepare_data, test_images_path, load_images_as_arrays, TGSSaltDataset
+from image_processing import downsample
+from data import test_images_path, load_images_as_arrays, TGSSaltDataset, prepare_test_data
 from visualisation import (
-    plot_coverage_and_coverage_class,
-    scatter_coverage_and_coverage_class,
-    plot_depth_distributions,
     plot_predictions,
-    plot_images,
 )
-from model import model_path, save_checkpoint, update_state
-from metrics import iou_metric_batch, my_iou_metric
+from model import model_path
+from metrics import iou_metric_batch
 from toolz import compose
 from data import rle_encode
 import datetime
@@ -60,16 +53,10 @@ import torch
 from torch.utils import data
 
 from resnetlike import UNetResNet
-from training import train, test
-from collections import defaultdict
 import logging
 import random
-from utils import create_optimizer, tboard_log_path
 import uuid
-import itertools as it
-from operator import itemgetter
-import shutil
-from losses import lovasz_hinge
+
 # -
 
 now = datetime.datetime.now()
@@ -175,10 +162,9 @@ plot_predictions(
 preds_thresh = np.array(list(map(downsample_to, preds_thresh_iter)))
 plt.legend()
 # -
-
+test_df = prepare_test_data()
 x_test = load_images_as_arrays(test_df.index, test_images_path())
-x_test = list(map(upsample_to, x_test))
-x_test = np.array(x_test).reshape(-1, 1, img_size_target, img_size_target)
+x_test = x_test.reshape(-1, 1, img_size_target, img_size_target)
 
 dataset_test = TGSSaltDataset(x_test, is_test=True)
 
