@@ -88,7 +88,7 @@ def plot_predictions(
         ax.text(
             1, 1, train_df.loc[idx].coverage_class, color="black", ha="left", va="top"
         )
-        if 'iou' is in train_df:
+        if 'iou' in train_df:
             ax.text(
                 1, 1, train_df.loc[idx].iou, color="black", ha="left", va="bottom"
             )
