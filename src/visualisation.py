@@ -90,7 +90,7 @@ def plot_predictions(
         )
         if 'iou' in train_df:
             ax.text(
-                1, 1, train_df.loc[idx].iou, color="black", ha="left", va="bottom"
+                1, 1, train_df.loc[idx].iou, color="black", ha="right"
             )
         ax.set_yticklabels([])
         ax.set_xticklabels([])
