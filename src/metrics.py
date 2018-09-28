@@ -1,5 +1,5 @@
 import numpy as np
-from itertools import  filterfalse
+from itertools import filterfalse
 from toolz import curry
 
 
@@ -20,11 +20,11 @@ def iou_metric(labels, y_pred, print_table=False, true_objects=2, pred_objects=2
     :param pred_objects: 
     :return: 
     """
-    # create 2 D histogram where the height of the diagonal elements represent 
+    # create 2 D histogram where the height of the diagonal elements represent
     # the intersection between the two arrays
-    intersection = np.histogram2d(labels.flatten(),
-                                  y_pred.flatten(),
-                                  bins=(true_objects, pred_objects))[0]
+    intersection = np.histogram2d(
+        labels.flatten(), y_pred.flatten(), bins=(true_objects, pred_objects)
+    )[0]
 
     # Compute areas (needed for finding the union between all objects)
     area_true = np.histogram(labels, bins=true_objects)[0]
@@ -49,7 +49,11 @@ def iou_metric(labels, y_pred, print_table=False, true_objects=2, pred_objects=2
         true_positives = np.sum(matches, axis=1) == 1  # Correct objects
         false_positives = np.sum(matches, axis=0) == 0  # Missed objects
         false_negatives = np.sum(matches, axis=1) == 0  # Extra objects
-        tp, fp, fn = np.sum(true_positives), np.sum(false_positives), np.sum(false_negatives)
+        tp, fp, fn = (
+            np.sum(true_positives),
+            np.sum(false_positives),
+            np.sum(false_negatives),
+        )
         return tp, fp, fn
 
     # Loop over IoU thresholds
@@ -71,33 +75,44 @@ def iou_metric(labels, y_pred, print_table=False, true_objects=2, pred_objects=2
     return np.mean(prec)
 
 
-def iou_metric_batch(y_true_in, y_pred_in):
-    batch_size = y_true_in.shape[0]
-    metric = []
-    for batch in range(batch_size):
-        value = iou_metric(y_true_in[batch], y_pred_in[batch])
-        metric.append(value)
+def iou_metric_batch(labels, predictions):
+    """
+    
+    Args:
+        labels:  Numpy array thresholded, only ints not float
+        predictions: 
+
+    Returns:
+
+    """
+    batch_size = labels.shape[0]
+    metric = [
+        iou_metric(labels[batch], predictions[batch]) for batch in range(batch_size)
+    ]
     return np.mean(metric)
 
 
-def get_iou_vector(A, B):
-    batch_size = A.shape[0]
-    metric = []
-    for batch in range(batch_size):
-        t, p = A[batch] > 0, B[batch] > 0
-        intersection = np.logical_and(t, p)
-        union = np.logical_or(t, p)
-        iou = (np.sum(intersection > 0) + 1e-10) / (np.sum(union > 0) + 1e-10)
-        thresholds = np.arange(0.5, 1, 0.05)
-        s = [iou > thresh for thresh in thresholds]
-        metric.append(np.mean(s))
+def _iou_batch(label, prediction):
+    t, p = label > 0, prediction > 0
+    intersection = np.logical_and(t, p)
+    union = np.logical_or(t, p)
+    iou = (np.sum(intersection > 0) + 1e-10) / (np.sum(union > 0) + 1e-10)
+    thresholds = np.arange(0.5, 1, 0.05)
+    s = [iou > thresh for thresh in thresholds]
+    return np.mean(s)
 
+
+def get_iou_vector(labels, predictions):
+    batch_size = labels.shape[0]
+    metric = [
+        _iou_batch(labels[batch], predictions[batch]) for batch in range(batch_size)
+    ]
     return np.mean(metric)
+
 
 @curry
 def my_iou_metric(label, pred, threshold=0.5):
     return get_iou_vector(label, pred > threshold)
-
 
 
 def mean(l, ignore_nan=False, empty=0):
@@ -113,8 +128,8 @@ def mean(l, ignore_nan=False, empty=0):
         n = 1
         acc = next(l)
     except StopIteration:
-        if empty == 'raise':
-            raise ValueError('Empty mean')
+        if empty == "raise":
+            raise ValueError("Empty mean")
         return empty
     for n, v in enumerate(l, 2):
         acc += v
@@ -122,7 +137,17 @@ def mean(l, ignore_nan=False, empty=0):
         return acc
     return acc / n
 
-def iou(preds, labels, C, EMPTY=1., ignore=None, per_image=False):
+
+def _thresholded_iou_for(class_label, label, pred, ignore=None, EMPTY=1.0):
+    intersection = ((label == class_label) & (pred == class_label)).sum()
+    union = ((label == class_label) | ((pred == class_label) & (label != ignore))).sum()
+    if not union:
+        return EMPTY
+    else:
+        return float(intersection) / union
+
+
+def iou(preds, labels, C, EMPTY=1.0, ignore=None, per_image=False):
     """
     Array of IoU for each (non ignored) class
     
@@ -132,15 +157,11 @@ def iou(preds, labels, C, EMPTY=1., ignore=None, per_image=False):
         preds, labels = (preds,), (labels,)
     ious = []
     for pred, label in zip(preds, labels):
-        iou = []    
-        for i in range(C):
-            if i != ignore: # The ignored label is sometimes among predicted classes (ENet - CityScapes)
-                intersection = ((label == i) & (pred == i)).sum()
-                union = ((label == i) | ((pred == i) & (label != ignore))).sum()
-                if not union:
-                    iou.append(EMPTY)
-                else:
-                    iou.append(float(intersection) / union)
+        class_iter = filter(lambda x: x != ignore, range(C))
+        iou = [
+            _thresholded_iou_for(class_label, label, pred, ignore=ignore, EMPTY=EMPTY)
+            for class_label in class_iter
+        ]
         ious.append(iou)
-    ious = map(mean, zip(*ious)) # mean accross images if per_image
+    ious = map(mean, zip(*ious))  # mean accross images if per_image
     return 100 * np.array(list(ious))
