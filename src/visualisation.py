@@ -114,11 +114,12 @@ def plot_poor_predictions(
         _thresholded_iou_for(1, label, pred) for pred, label in zip(predictions, labels)
     )
     iou_series = pd.Series(list(iou_iter), index=image_ids)
+    pred_series = pd.Series(predictions, index=image_ids)
     image_ids = iou_series[iou_series <= iou_threshold].index
     train_df['iou'] = iou_series
     plot_predictions(
         train_df,
-        predictions,
+        pred_series.loc[image_ids,:].values,
         image_ids,
         img_size_ori=img_size_ori,
         max_images=max_images,
