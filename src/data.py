@@ -37,19 +37,33 @@ def load_images_as_arrays(image_id_iter, images_path, progress=tqdm):
     return list(map(process, progress(image_id_iter)))
 
 
-def prepare_data(img_size_ori=101):
+def _read_train_depth_csv():
     train_df = pd.read_csv(training_csv_path(), index_col="id", usecols=[0])
     depths_df = pd.read_csv(depths_csv_path(), index_col="id")
-    
-    train_df = train_df.join(depths_df)
-    test_df = depths_df[~depths_df.index.isin(train_df.index)]
+    return train_df, depths_df
 
-    train_df["images"]=load_images_as_arrays(train_df.index, training_images_path())
-    train_df["masks"]=load_images_as_arrays(train_df.index, training_masks_path())
+
+def prepare_training_data(img_size_ori=101):
+    train_df, depths_df = _read_train_depth_csv()
+    train_df = train_df.join(depths_df)
+   
+    train_df["images"] = load_images_as_arrays(train_df.index, training_images_path())
+    train_df["masks"] = load_images_as_arrays(train_df.index, training_masks_path())
 
     train_df["coverage"] = train_df.masks.map(np.sum) / pow(img_size_ori, 2)
     train_df["coverage_class"] = train_df.coverage.map(cov_to_class)
-    
+    return train_df
+
+
+def prepare_test_data():
+    train_df, depths_df = _read_train_depth_csv()
+    test_df = depths_df[~depths_df.index.isin(train_df.index)]
+    return test_df
+
+
+def prepare_data(img_size_ori=101):
+    train_df = prepare_training_data(img_size_ori=img_size_ori)
+    test_df = prepare_test_data()
     return train_df, test_df
 
 
