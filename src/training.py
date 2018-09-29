@@ -120,9 +120,9 @@ class RefineStep(CycleStep):
             criterion,
             scheduler,
             optimizer,
-            summary_writer=summary_writer,
-            metrics_func=metrics_func,
-            output_threshold=output_threshold,
+            summary_writer,
+            metrics_func,
+            output_threshold,
         )
 
     def __call__(self, model, image, mask, epoch):
