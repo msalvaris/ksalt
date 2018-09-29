@@ -45,6 +45,7 @@ class CycleStep(TrainingStep):
         summary_writer=None,
         global_counter=None,
         metrics_func=(("iou", my_iou_metric),),
+        output_threshold=0.5,
     ):
         super(TrainingStep).__init__()
         self._scheduler = scheduler
@@ -56,6 +57,7 @@ class CycleStep(TrainingStep):
 
         self._image_writer = create_image_writer(summary_writer)
         self._metrics_func = metrics_func
+        self._output_threshold=output_threshold
 
     def _optimize(self, image, mask):
         with torch.cuda.device(0):
@@ -100,6 +102,7 @@ class CycleStep(TrainingStep):
         self._scheduler.step()
         output, loss = self._optimize(image, mask)
         output_cpu = output.cpu()
+        output_cpu = np.uint8(output_cpu > self._output_threshold)
         train_metrics = self._metrics(output_cpu, loss, mask)
         self._to_tensorboard(epoch, step, image, mask, train_metrics, output_cpu)
         return train_metrics
@@ -115,6 +118,7 @@ class RefineStep(CycleStep):
         summary_writer=None,
         global_counter=None,
         metrics_func=(("iou", my_iou_metric),),
+        output_threshold=0,
     ):
         super(RefineStep).__init__(
             model,
@@ -124,11 +128,13 @@ class RefineStep(CycleStep):
             summary_writer=summary_writer,
             global_counter=global_counter,
             metrics_func=metrics_func,
+            output_threshold=output_threshold
         )
 
     def __call__(self, epoch, step, image, mask):
         output, loss = self._optimize(image, mask)
         output_cpu = output.cpu()
+        output_cpu = np.uint8(output_cpu > self._output_threshold)
         train_metrics = self._metrics(output_cpu, loss, mask)
         self._to_tensorboard(epoch, step, image, mask, train_metrics, output_cpu)
         return train_metrics
