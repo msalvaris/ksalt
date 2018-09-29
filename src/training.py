@@ -23,69 +23,128 @@ def create_image_writer(summary_writer):
 
 def _add_metrics(metric_collector_dict, metrics_funcs, mask_array, pred_array):
     for metric, metric_func in metrics_funcs:
-        metric_collector_dict[metric].append(metric_func(mask_array, pred_array))
+        metric_collector_dict[metric] = metric_func(mask_array, pred_array)
     return metric_collector_dict
 
 
-def train(
-    epoch,
-    model,
-    optimizer,
-    scheduler,
-    criterion,
-    train_loader,
-    summary_writer=None,
-    global_counter=None,
-    metrics_funcs=(("iou", my_iou_metric),),
-):
-    logger.info("Train {}".format(epoch))
+class TrainingStep(object):
+    def __init__(self):
+        super(TrainingStep).__init__()
 
-    image_writer = create_image_writer(summary_writer)
+    def __call__(self, epoch, step, image, mask):
+        raise NotImplementedError("Please implement __call__ method")
+
+
+class CycleStep(TrainingStep):
+    def __init__(
+        self,
+        model,
+        criterion,
+        scheduler,
+        optimizer,
+        summary_writer=None,
+        global_counter=None,
+        metrics_func=(("iou", my_iou_metric),),
+    ):
+        super(TrainingStep).__init__()
+        self._scheduler = scheduler
+        self._optimizer = optimizer
+        self._summary_writer = summary_writer
+        self._global_counter = global_counter
+        self._model = model
+        self._criterion = criterion
+
+        self._image_writer = create_image_writer(summary_writer)
+        self._metrics_func = metrics_func
+
+    def _optimize(self, image, mask):
+        with torch.cuda.device(0):
+            image = image.type(torch.float).cuda(async=True)
+            mask_gpu = mask.type(torch.float).cuda(async=True)
+
+        self._optimizer.zero_grad()
+        output = self._model(image)
+        loss = self._criterion(output, mask_gpu)
+
+        loss.backward()
+        self._optimizer.step()
+        return output, loss
+
+    def _to_tensorboard(self, epoch, step, image, mask, metrics, output_cpu):
+        global_step = (
+            next(self._global_counter) if self._global_counter is not None else step
+        )
+        if self._summary_writer is not None:
+            lr = self._optimizer.param_groups[0]["lr"]  # scheduler.get_lr()[0]
+            self._summary_writer.add_scalar("Train/LearningRate", lr, global_step)
+            self._summary_writer.add_scalar(
+                "Train/RunningLoss", metrics["loss"], global_step
+            )
+            self._summary_writer.add_scalar(
+                "Train/RunningIoU", metrics["iou"], global_step
+            )
+            if step == 0:
+                self._image_writer(image, "Train/Image", epoch, normalize=True)
+                self._image_writer(mask, "Train/Mask", epoch)
+                self._image_writer(output_cpu, "Train/Prediction", epoch)
+
+    def _metrics(self, output_cpu, loss, mask):
+        train_metrics = {}
+        train_metrics["loss"] = loss.item()
+        train_metrics = _add_metrics(
+            train_metrics, self._metrics_func, mask.numpy(), output_cpu.data.numpy()
+        )
+        return train_metrics
+
+    def __call__(self, epoch, step, image, mask):
+        self._scheduler.step()
+        output, loss = self._optimize(image, mask)
+        output_cpu = output.cpu()
+        train_metrics = self._metrics(output_cpu, loss, mask)
+        self._to_tensorboard(epoch, step, image, mask, train_metrics, output_cpu)
+        return train_metrics
+
+
+class RefineStep(CycleStep):
+    def __init__(
+        self,
+        model,
+        criterion,
+        scheduler,
+        optimizer,
+        summary_writer=None,
+        global_counter=None,
+        metrics_func=(("iou", my_iou_metric),),
+    ):
+        super(RefineStep).__init__(
+            model,
+            criterion,
+            scheduler,
+            optimizer,
+            summary_writer=summary_writer,
+            global_counter=global_counter,
+            metrics_func=metrics_func,
+        )
+
+    def __call__(self, epoch, step, image, mask):
+        output, loss = self._optimize(image, mask)
+        output_cpu = output.cpu()
+        train_metrics = self._metrics(output_cpu, loss, mask)
+        self._to_tensorboard(epoch, step, image, mask, train_metrics, output_cpu)
+        return train_metrics
+
+
+def train(epoch, model, train_loader, tain_step_func, summary_writer=None):
+    logger.info("Train {}".format(epoch))
     model.train()
 
     train_metrics = defaultdict(list)
     start = time.time()
     for step, (image, mask) in enumerate(train_loader):
-        global_step = next(global_counter) if global_counter is not None else step
-        
-        if isinstance(scheduler, torch.optim.lr_scheduler.LambdaLR):
-            scheduler.step()
+        metrics = tain_step_func(epoch, step, image, mask)
 
-        if summary_writer is not None:
-            lr=optimizer.param_groups[0]['lr'] #scheduler.get_lr()[0]
-            summary_writer.add_scalar(
-                "Train/LearningRate", lr, global_step
-            )
-            if step == 0:
-                image_writer(image, "Train/Image", epoch, normalize=True)
-
-        with torch.cuda.device(0):
-            image = image.type(torch.float).cuda(async=True)
-            mask_gpu = mask.type(torch.float).cuda(async=True)
-
-        optimizer.zero_grad()
-        output = model(image)
-        loss = criterion(output, mask_gpu)
-
-        loss.backward()
-        optimizer.step()
-
-        output_cpu = output.cpu()
-        train_metrics["loss"].append(loss.item())
-        train_metrics = _add_metrics(
-            train_metrics, metrics_funcs, mask.numpy(), output_cpu.data.numpy()
-        )
-
-        if summary_writer is not None:
-            summary_writer.add_scalar(
-                "Train/RunningLoss", train_metrics["loss"][-1], global_step
-            )
-            summary_writer.add_scalar(
-                "Train/RunningIoU", train_metrics["iou"][-1], global_step
-            )
-            if step == 0:
-                image_writer(mask, "Train/Mask", epoch)
-                image_writer(output_cpu, "Train/Prediction", epoch)
+        for key, item in metrics.items():
+            train_metrics[key].append(item)
 
         if step % 100 == 0:
             message = (
