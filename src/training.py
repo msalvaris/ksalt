@@ -86,7 +86,7 @@ class CycleStep(TrainingStep):
                 self._previous_epoch = epoch
                 self._image_writer(image, "Train/Image", epoch, normalize=True)
                 self._image_writer(mask, "Train/Mask", epoch)       
-                self._image_writer(torch.nn.functional.sigmoid(output_cpu), "Train/Prediction", epoch)
+                self._image_writer(torch.sigmoid(output_cpu), "Train/Prediction", epoch)
 
     def _metrics(self, output_cpu, loss, mask):
         train_metrics = {}
@@ -206,7 +206,7 @@ def test(
         if summary_writer is not None and step == 0:
             image_writer(mask, "Test/Mask", epoch)
             image_writer(
-                torch.nn.functional.sigmoid(output_cpu), "Test/Prediction", epoch
+                torch.sigmoid(output_cpu), "Test/Prediction", epoch
             )
 
         val_metrics["loss"].append(loss.item())
