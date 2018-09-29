@@ -169,6 +169,7 @@ def test(
     test_loader,
     summary_writer=None,
     metrics_funcs=(("iou", my_iou_metric),),
+    output_threshold=0.5
 ):
     logger.info("Test {}".format(epoch))
 
@@ -194,7 +195,7 @@ def test(
         output_cpu = output.cpu()
         if summary_writer is not None and step == 0:
             image_writer(mask, "Test/Mask", epoch)
-            image_writer(output_cpu, "Test/Prediction", epoch)
+            image_writer(np.uint8(output_cpu > output_threshold), "Test/Prediction", epoch)
 
         val_metrics["loss"].append(loss.item())
         val_metrics = _add_metrics(
