@@ -30,7 +30,7 @@ def _add_metrics(metric_collector_dict, metrics_funcs, mask_array, pred_array):
 
 class TrainingStep(object):
     def __init__(self):
-        super(TrainingStep).__init__()
+        super().__init__()
 
     def __call__(self, model, image, mask, epoch):
         raise NotImplementedError("Please implement __call__ method")
@@ -46,7 +46,7 @@ class CycleStep(TrainingStep):
         metrics_func=(("iou", my_iou_metric),),
         output_threshold=0.5,
     ):
-        super(TrainingStep).__init__()
+        super().__init__()
         self._scheduler = scheduler
         self._optimizer = optimizer
         self._summary_writer = summary_writer
@@ -116,7 +116,7 @@ class RefineStep(CycleStep):
         metrics_func=(("iou", my_iou_metric),),
         output_threshold=0,
     ):
-        super(RefineStep).__init__(
+        super().__init__(
             criterion,
             scheduler,
             optimizer,
