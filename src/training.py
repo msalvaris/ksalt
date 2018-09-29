@@ -39,7 +39,6 @@ class TrainingStep(object):
 class CycleStep(TrainingStep):
     def __init__(
         self,
-        model,
         criterion,
         scheduler,
         optimizer,
@@ -51,7 +50,6 @@ class CycleStep(TrainingStep):
         self._scheduler = scheduler
         self._optimizer = optimizer
         self._summary_writer = summary_writer
-        self._model = model
         self._criterion = criterion
 
         self._image_writer = create_image_writer(summary_writer)
@@ -60,13 +58,13 @@ class CycleStep(TrainingStep):
         self._step_counter = it.count()
         self._previous_epoch = None
 
-    def _optimize(self, image, mask):
+    def _optimize(self, model, image, mask):
         with torch.cuda.device(0):
             image = image.type(torch.float).cuda(async=True)
             mask_gpu = mask.type(torch.float).cuda(async=True)
 
         self._optimizer.zero_grad()
-        output = self._model(image)
+        output = model(image)
         loss = self._criterion(output, mask_gpu)
 
         loss.backward()
@@ -100,7 +98,7 @@ class CycleStep(TrainingStep):
 
     def __call__(self, model, image, mask, epoch):
         self._scheduler.step()
-        output, loss = self._optimize(image, mask)
+        output, loss = self._optimize(model, image, mask)
         output_cpu = output.cpu()
         output_cpu = np.uint8(output_cpu > self._output_threshold)
         train_metrics = self._metrics(output_cpu, loss, mask)
@@ -111,7 +109,6 @@ class CycleStep(TrainingStep):
 class RefineStep(CycleStep):
     def __init__(
         self,
-        model,
         criterion,
         scheduler,
         optimizer,
@@ -120,7 +117,6 @@ class RefineStep(CycleStep):
         output_threshold=0,
     ):
         super(RefineStep).__init__(
-            model,
             criterion,
             scheduler,
             optimizer,
@@ -130,7 +126,7 @@ class RefineStep(CycleStep):
         )
 
     def __call__(self, model, image, mask, epoch):
-        output, loss = self._optimize(image, mask)
+        output, loss = self._optimize(model, image, mask)
         output_cpu = output.cpu()
         output_cpu = np.uint8(output_cpu > self._output_threshold)
         train_metrics = self._metrics(output_cpu, loss, mask)
