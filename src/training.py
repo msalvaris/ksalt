@@ -106,7 +106,7 @@ class CycleStep(TrainingStep):
             image,
             mask,
             train_metrics,
-            (output_cpu > self._output_threshold).type(torch.ByteTensor),
+            output_cpu,
         )
         return train_metrics
 
@@ -139,7 +139,7 @@ class RefineStep(CycleStep):
             image,
             mask,
             train_metrics,
-            (output_cpu > self._output_threshold).type(torch.ByteTensor),
+            output_cpu,
         )
         return train_metrics
 
@@ -206,7 +206,7 @@ def test(
         if summary_writer is not None and step == 0:
             image_writer(mask, "Test/Mask", epoch)
             image_writer(
-                (output_cpu > output_threshold).type(torch.ByteTensor), "Test/Prediction", epoch
+                output_cpu, "Test/Prediction", epoch
             )
 
         val_metrics["loss"].append(loss.item())
