@@ -92,7 +92,7 @@ class CycleStep(TrainingStep):
         train_metrics = {}
         train_metrics["loss"] = loss.item()
         train_metrics = _add_metrics(
-            train_metrics, self._metrics_func, mask.numpy(), output_cpu.data.numpy()
+            train_metrics, self._metrics_func, mask.numpy(), output_cpu
         )
         return train_metrics
 
@@ -100,7 +100,7 @@ class CycleStep(TrainingStep):
         self._scheduler.step()
         output, loss = self._optimize(model, image, mask)
         output_cpu = output.cpu()
-        output_cpu = np.uint8(output_cpu > self._output_threshold)
+        output_cpu = np.uint8(output_cpu.data.numpy() > self._output_threshold)
         train_metrics = self._metrics(output_cpu, loss, mask)
         self._to_tensorboard(epoch, image, mask, train_metrics, output_cpu)
         return train_metrics
