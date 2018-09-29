@@ -206,7 +206,7 @@ def test(
         if summary_writer is not None and step == 0:
             image_writer(mask, "Test/Mask", epoch)
             image_writer(
-                np.uint8(output_cpu > output_threshold), "Test/Prediction", epoch
+                (output_cpu > output_threshold).type(torch.ByteTensor), "Test/Prediction", epoch
             )
 
         val_metrics["loss"].append(loss.item())
