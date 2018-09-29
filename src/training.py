@@ -5,6 +5,7 @@ from collections import defaultdict
 import numpy as np
 import torch
 import torchvision
+import itertools as it
 
 from metrics import my_iou_metric
 
@@ -31,7 +32,7 @@ class TrainingStep(object):
     def __init__(self):
         super(TrainingStep).__init__()
 
-    def __call__(self, epoch, step, image, mask):
+    def __call__(self, model, image, mask, epoch):
         raise NotImplementedError("Please implement __call__ method")
 
 
@@ -43,7 +44,6 @@ class CycleStep(TrainingStep):
         scheduler,
         optimizer,
         summary_writer=None,
-        global_counter=None,
         metrics_func=(("iou", my_iou_metric),),
         output_threshold=0.5,
     ):
@@ -51,13 +51,14 @@ class CycleStep(TrainingStep):
         self._scheduler = scheduler
         self._optimizer = optimizer
         self._summary_writer = summary_writer
-        self._global_counter = global_counter
         self._model = model
         self._criterion = criterion
 
         self._image_writer = create_image_writer(summary_writer)
         self._metrics_func = metrics_func
-        self._output_threshold=output_threshold
+        self._output_threshold = output_threshold
+        self._step_counter = it.count()
+        self._previous_epoch = None
 
     def _optimize(self, image, mask):
         with torch.cuda.device(0):
@@ -72,10 +73,8 @@ class CycleStep(TrainingStep):
         self._optimizer.step()
         return output, loss
 
-    def _to_tensorboard(self, epoch, step, image, mask, metrics, output_cpu):
-        global_step = (
-            next(self._global_counter) if self._global_counter is not None else step
-        )
+    def _to_tensorboard(self, epoch, image, mask, metrics, output_cpu):
+        global_step = next(self._step_counter)
         if self._summary_writer is not None:
             lr = self._optimizer.param_groups[0]["lr"]  # scheduler.get_lr()[0]
             self._summary_writer.add_scalar("Train/LearningRate", lr, global_step)
@@ -85,7 +84,8 @@ class CycleStep(TrainingStep):
             self._summary_writer.add_scalar(
                 "Train/RunningIoU", metrics["iou"], global_step
             )
-            if step == 0:
+            if self._previous_epoch != epoch:
+                self._previous_epoch = epoch
                 self._image_writer(image, "Train/Image", epoch, normalize=True)
                 self._image_writer(mask, "Train/Mask", epoch)
                 self._image_writer(output_cpu, "Train/Prediction", epoch)
@@ -98,13 +98,13 @@ class CycleStep(TrainingStep):
         )
         return train_metrics
 
-    def __call__(self, epoch, step, image, mask):
+    def __call__(self, model, image, mask, epoch):
         self._scheduler.step()
         output, loss = self._optimize(image, mask)
         output_cpu = output.cpu()
         output_cpu = np.uint8(output_cpu > self._output_threshold)
         train_metrics = self._metrics(output_cpu, loss, mask)
-        self._to_tensorboard(epoch, step, image, mask, train_metrics, output_cpu)
+        self._to_tensorboard(epoch, image, mask, train_metrics, output_cpu)
         return train_metrics
 
 
@@ -116,7 +116,6 @@ class RefineStep(CycleStep):
         scheduler,
         optimizer,
         summary_writer=None,
-        global_counter=None,
         metrics_func=(("iou", my_iou_metric),),
         output_threshold=0,
     ):
@@ -126,17 +125,16 @@ class RefineStep(CycleStep):
             scheduler,
             optimizer,
             summary_writer=summary_writer,
-            global_counter=global_counter,
             metrics_func=metrics_func,
-            output_threshold=output_threshold
+            output_threshold=output_threshold,
         )
 
-    def __call__(self, epoch, step, image, mask):
+    def __call__(self, model, image, mask, epoch):
         output, loss = self._optimize(image, mask)
         output_cpu = output.cpu()
         output_cpu = np.uint8(output_cpu > self._output_threshold)
         train_metrics = self._metrics(output_cpu, loss, mask)
-        self._to_tensorboard(epoch, step, image, mask, train_metrics, output_cpu)
+        self._to_tensorboard(epoch, image, mask, train_metrics, output_cpu)
         return train_metrics
 
 
@@ -146,24 +144,15 @@ def train(epoch, model, train_loader, tain_step_func, summary_writer=None):
 
     train_metrics = defaultdict(list)
     start = time.time()
-    for step, (image, mask) in enumerate(train_loader):
-        metrics = tain_step_func(epoch, step, image, mask)
+    for image, mask in train_loader:
+        metrics = tain_step_func(model, image, mask, epoch)
 
         for key, item in metrics.items():
             train_metrics[key].append(item)
 
-        if step % 100 == 0:
-            message = (
-                f"Epoch: {epoch},"
-                f"Step: {step},"
-                f"Train: loss {np.mean(train_metrics['loss']):.3f},  IoU {np.mean(train_metrics['iou']):.3f}"
-            )
-            logger.info(message)
-
     elapsed = time.time() - start
     message = (
         f"Epoch: {epoch},"
-        f"Step: {step},"
         f"Train: loss {np.mean(train_metrics['loss']):.3f},  IoU {np.mean(train_metrics['iou']):.3f}"
     )
     logger.info(message)
