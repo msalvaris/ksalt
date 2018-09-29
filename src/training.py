@@ -92,7 +92,7 @@ class CycleStep(TrainingStep):
         train_metrics = {}
         train_metrics["loss"] = loss.item()
         train_metrics = _add_metrics(
-            train_metrics, self._metrics_func, mask.numpy(), output_cpu
+            train_metrics, self._metrics_func, mask.numpy(), output_cpu.data.numpy()
         )
         return train_metrics
 
@@ -100,9 +100,14 @@ class CycleStep(TrainingStep):
         self._scheduler.step()
         output, loss = self._optimize(model, image, mask)
         output_cpu = output.cpu()
-        output_cpu = np.uint8(output_cpu.data.numpy() > self._output_threshold)
         train_metrics = self._metrics(output_cpu, loss, mask)
-        self._to_tensorboard(epoch, image, mask, train_metrics, output_cpu)
+        self._to_tensorboard(
+            epoch,
+            image,
+            mask,
+            train_metrics,
+            (output_cpu > self._output_threshold).type(torch.ByteTensor),
+        )
         return train_metrics
 
 
@@ -128,9 +133,14 @@ class RefineStep(CycleStep):
     def __call__(self, model, image, mask, epoch):
         output, loss = self._optimize(model, image, mask)
         output_cpu = output.cpu()
-        output_cpu = np.uint8(output_cpu > self._output_threshold)
         train_metrics = self._metrics(output_cpu, loss, mask)
-        self._to_tensorboard(epoch, image, mask, train_metrics, output_cpu)
+        self._to_tensorboard(
+            epoch,
+            image,
+            mask,
+            train_metrics,
+            (output_cpu > self._output_threshold).type(torch.ByteTensor),
+        )
         return train_metrics
 
 
@@ -169,7 +179,7 @@ def test(
     test_loader,
     summary_writer=None,
     metrics_funcs=(("iou", my_iou_metric),),
-    output_threshold=0.5
+    output_threshold=0.5,
 ):
     logger.info("Test {}".format(epoch))
 
@@ -195,7 +205,9 @@ def test(
         output_cpu = output.cpu()
         if summary_writer is not None and step == 0:
             image_writer(mask, "Test/Mask", epoch)
-            image_writer(np.uint8(output_cpu > output_threshold), "Test/Prediction", epoch)
+            image_writer(
+                np.uint8(output_cpu > output_threshold), "Test/Prediction", epoch
+            )
 
         val_metrics["loss"].append(loss.item())
         val_metrics = _add_metrics(
