@@ -31,7 +31,7 @@ def load_config(config=_DEFAULT_CONFIG):
 def _save_config(config_json, config_path):
     logger.info(f'Saving config {config_path}')
     with open(config_path, "w") as f:
-        json_string = json.dumps(config_json, f, sort_keys=True, indent=4)
+        json_string = json.dumps(config_json, sort_keys=True, indent=4)
         logger.info(json_string)
         f.write(json_string)
 
