@@ -44,7 +44,7 @@ _OPTIMIZER_DICT = {"sgd": _sgd, "adam": _adam}
 
 
 def _get_optimizer(model_parameters, optim_config):
-    _OPTIMIZER_DICT.get(optim_config["type"], default=_no_optimizer)(
+    _OPTIMIZER_DICT.get(optim_config["type"], _no_optimizer)(
         model_parameters, optim_config
     )
 
