@@ -28,12 +28,11 @@ def _save_config(config_json, config_path):
         json.dump(config_json, f)
 
 
-def main(id=None, config=_DEFAULT_CONFIG):
+def generate(id=None, config=_DEFAULT_CONFIG):
     config_json = load_config(config)
     config_json = _alter_id(id, config_json)
-
     _save_config(config_json, config)
 
 
 if __name__ == "__main__":
-    fire.Fire(main())
+    fire.Fire(generate())
