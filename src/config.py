@@ -1,7 +1,11 @@
 import json
+import logging
 import os
 import uuid
 import fire
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 _DEFAULT_CONFIG = os.path.join("../configs", "config.json")
 
@@ -19,16 +23,21 @@ def _alter_id(id, config_json):
 
 
 def load_config(config=_DEFAULT_CONFIG):
+    logger.info(f'Loading config {config}')
     with open(config) as f:
         return json.load(f)
 
 
 def _save_config(config_json, config_path):
+    logger.info(f'Saving config {config_path}')
     with open(config_path, "w") as f:
-        json.dump(config_json, f)
+        json_string = json.dumps(config_json, f, sort_keys=True, indent=4)
+        logger.info(json_string)
+        f.write(json_string)
 
 
 def generate(id=None, config=_DEFAULT_CONFIG):
+    logger.info('Generating config')
     config_json = load_config(config)
     config_json = _alter_id(id, config_json)
     _save_config(config_json, config)
