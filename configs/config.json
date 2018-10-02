@@ -1,0 +1,56 @@
+{
+  "Model":{
+    "id":7878,
+    "model_path":"model_{cycle}_state.pth",
+    "best_model_path":"best_model_state.pth",
+    "img_target_size": 101,
+    "batch_size": 128,
+    "epochs": 70,
+    "num_workers": 0,
+    "seed":42,
+    "base_channels":32,
+    "optimization_config":{
+      "type":"sgd",
+      "learning_rate":0.1,
+      "momentum": 0.9,
+      "weight_decay": 1e-4,
+      "nesterov": true,
+      "scheduler":{
+        "type":"cosine",
+        "num_cycles": 6,
+        "lr_min": 0
+      }
+    }
+  },
+    
+    
+  "RefineModel": {
+    "name": "RefineModel",
+    "id": 7878,
+    "initial_model_path": "best_model_state.pth",
+    "model_path": "model_lovasz_state",
+    "best_model_path": "best_lovasz_model.pth",
+    "img_target_size": 101,
+    "batch_size": 128,
+    "num_workers": 0,
+    "seed": 42,
+    "optimization_config": {
+      "type": "adam",
+      "learning_rate": 0.001,
+      "scheduler": {
+        "type": "cosine",
+        "num_cycles": 6,
+        "lr_min": 0
+      }
+    }
+  },
+      
+  "EvaluateModel":{
+    "name": "EvaluateModel",
+    "id": 7878,
+    "model_path": "best_lovasz_model.pth",
+    "img_target_size": 101,
+    "num_workers": 0,
+    "seed": 42
+  }
+}
