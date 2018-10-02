@@ -13,7 +13,7 @@ def _generate_id():
 def _alter_id(id, config_json):
     if id is None:
         id = _generate_id()
-    for key, step in config_json.iteritems:
+    for key, step in config_json.items():
         step["id"] = id
     return config_json
 
