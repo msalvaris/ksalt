@@ -7,7 +7,7 @@ _DEFAULT_CONFIG = os.path.join("../configs", "config.json")
 
 
 def _generate_id():
-    return uuid.uuid4()
+    return str(uuid.uuid4())
 
 
 def _alter_id(id, config_json):
