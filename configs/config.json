@@ -1,8 +1,8 @@
 {
   "Model":{
     "id":7878,
-    "model_path":"model_{cycle}_state.pth",
-    "best_model_path":"best_model_state.pth",
+    "model_filename":"model_{cycle}_state.pth",
+    "best_model_filename":"best_model_state.pth",
     "img_target_size": 101,
     "batch_size": 128,
     "epochs": 70,
@@ -27,9 +27,9 @@
   "RefineModel": {
     "name": "RefineModel",
     "id": 7878,
-    "initial_model_path": "best_model_state.pth",
-    "model_path": "model_lovasz_state",
-    "best_model_path": "best_lovasz_model.pth",
+    "initial_model_filename": "best_model_state.pth",
+    "model_filename": "model_lovasz_state",
+    "best_model_filename": "best_lovasz_model.pth",
     "img_target_size": 101,
     "batch_size": 128,
     "num_workers": 0,
@@ -48,7 +48,7 @@
   "EvaluateModel":{
     "name": "EvaluateModel",
     "id": 7878,
-    "model_path": "best_lovasz_model.pth",
+    "model_filename": "best_lovasz_model.pth",
     "img_target_size": 101,
     "num_workers": 0,
     "seed": 42
