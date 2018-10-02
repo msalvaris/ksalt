@@ -57,6 +57,12 @@ class CycleStep(TrainingStep):
         self._output_threshold = output_threshold
         self._step_counter = it.count()
         self._previous_epoch = None
+        
+    def set_optimizer(self, optimizer):
+        self._optimizer=optimizer
+    
+    def set_scheduler(self, scheduler):
+        self._scheduler=scheduler
 
     def _optimize(self, model, image, mask):
         with torch.cuda.device(0):
