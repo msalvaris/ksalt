@@ -64,7 +64,7 @@ def _cosine(optimizer, optim_config):
             step,
             total_steps,
             1,  # since lr_lambda computes multiplicative factor
-            optim_config["lr_min"] / optim_config["base_lr"],
+            optim_config["scheduler"]["lr_min"] / optim_config["base_lr"],
         ),
     )
 
