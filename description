@@ -1,0 +1,5 @@
+UNet architecture with ResNet-like blocks
+It comprises of 3 stages, training, refinement and evaluation
+Uses cyclical learning rate and SGD for training with BCE loss
+Then refines the best model using Adam and lovasz loss
+Final for evalution we run it on the held out dataset
