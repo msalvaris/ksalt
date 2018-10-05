@@ -32,8 +32,10 @@
 # %autoreload 2
 
 import matplotlib.pyplot as plt
+
 plt.style.use("seaborn-white")
 import seaborn as sns
+
 sns.set_style("white")
 from sklearn.model_selection import train_test_split
 from torch import nn
@@ -65,6 +67,7 @@ from training import train, test, RefineStep
 from collections import defaultdict
 from utils import create_optimizer, tboard_log_path
 from config import load_config
+
 # -
 
 logging.basicConfig(level=logging.INFO)
@@ -72,8 +75,8 @@ logger = logging.getLogger(__name__)
 
 now = datetime.datetime.now()
 
-config = load_config()['Model']
-logger.info(f'Loading config {config}')
+config = load_config()["Model"]
+logger.info(f"Loading config {config}")
 
 locals().update(config)
 
@@ -177,7 +180,7 @@ val_data_loader = data.DataLoader(
 optimization_config["steps_per_epoch"] = len(train_data_loader)
 optimization_config["epochs"] = epochs
 
-model_dir=os.path.join(model_path(), f"{id}")
+model_dir = os.path.join(model_path(), f"{id}")
 os.makedirs(model_dir, exist_ok=True)
 
 # +
@@ -191,7 +194,9 @@ cycle_best_val_iou = {}
 optimizer, scheduler = create_optimizer(model.parameters(), optimization_config)
 step_func = RefineStep(loss_fn, scheduler, optimizer, summary_writer=summary_writer)
 
-for cycle in range(optimization_config['scheduler']['num_cycles']):  # Cosine annealing with warm restarts
+for cycle in range(
+    optimization_config["scheduler"]["num_cycles"]
+):  # Cosine annealing with warm restarts
     optimizer, scheduler = create_optimizer(model.parameters(), optimization_config)
     step_func.set_optimizer(optimizer)
     step_func.set_scheduler(scheduler)
@@ -202,7 +207,7 @@ for cycle in range(optimization_config['scheduler']['num_cycles']):  # Cosine an
             model,
             train_data_loader,
             step_func,
-            summary_writer=summary_writer
+            summary_writer=summary_writer,
         )
 
         val_metrics = test(
@@ -213,7 +218,11 @@ for cycle in range(optimization_config['scheduler']['num_cycles']):  # Cosine an
             state, cum_epoch, "val_iou", np.mean(val_metrics["iou"]), model, optimizer
         )
 
-        save_checkpoint(state, outdir=model_dir, best_model_filename=model_filename.format(cycle=cycle))
+        save_checkpoint(
+            state,
+            outdir=model_dir,
+            best_model_filename=model_filename.format(cycle=cycle),
+        )
 
         history["epoch"].append(cum_epoch)
         history["train_loss"].append(np.mean(train_metrics["loss"]))
