@@ -23,41 +23,32 @@
 # %autoreload 2
 
 import matplotlib.pyplot as plt
-
 plt.style.use("seaborn-white")
 import seaborn as sns
-
 sns.set_style("white")
-
 from torch import nn
-
 from tqdm import tqdm
-
-# +
-from image_processing import downsample
-from data import test_images_path, load_images_as_arrays, TGSSaltDataset, prepare_test_data
-from visualisation import (
-    plot_predictions,
-)
-from model import model_path, predict_tta
-from metrics import iou_metric_batch
 from toolz import compose
-from data import rle_encode
 import datetime
-import os
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 import torch
-
 from torch.utils import data
-
-from resnetlike import UNetResNet
 import logging
 import random
-import uuid
 import os
+# +
+from data import (
+    test_images_path,
+    load_images_as_arrays,
+    TGSSaltDataset,
+    prepare_test_data,
+)
+from model import model_path, predict_tta
+from data import rle_encode
+from resnetlike import UNetResNet
 from config import load_config
+
 # -
 
 logging.basicConfig(level=logging.INFO)
@@ -65,35 +56,11 @@ logger = logging.getLogger(__name__)
 
 now = datetime.datetime.now()
 
-config = load_config()['EvaluateModel']
-logger.info(f'Loading config {config}')
+config = load_config()["EvaluateModel"]
+logger.info(f"Loading config {config}")
 
 locals().update(config)
 
-# +
-# img_size_target = 101
-# batch_size = 128
-# # learning_rate = 0.1
-# # epochs = 70
-# num_workers = 0
-# seed = 42
-# # num_cycles = (
-# #     6
-# # )  # Using Cosine Annealing with warm restarts, the number of times to oscillate
-# # notebook_id = f"{now:%d%b%Y}_{uuid.uuid4()}"
-# base_channels = 32
-# # optim_config = {
-# #     "optimizer": "sgd",
-# #     "base_lr": 0.01,
-# #     "momentum": 0.9,
-# #     "weight_decay": 1e-4,
-# #     "nesterov": True,
-# #     "epochs": epochs,
-# #     "scheduler": "cosine",
-# #     "lr_min": 0,
-# # }
-# threshold_best=0.10676797542570594
-# -
 
 torch.backends.cudnn.benchmark = True
 logger.info(f"Started {now}")
@@ -108,9 +75,9 @@ device = torch.device("cuda:0")
 model = nn.DataParallel(model)
 model.to(device)
 
-model.module.final_activation=nn.Sequential().to(device)
+model.module.final_activation = nn.Sequential().to(device)
 
-model_dir=os.path.join(model_path(), f"{id}")
+model_dir = os.path.join(model_path(), f"{id}")
 filename = os.path.join(model_dir, initial_model_filename)
 checkpoint = torch.load(filename)
 model.load_state_dict(checkpoint["state_dict"])
