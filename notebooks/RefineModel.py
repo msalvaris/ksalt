@@ -23,47 +23,34 @@
 # %autoreload 2
 
 import matplotlib.pyplot as plt
-
 plt.style.use("seaborn-white")
 import seaborn as sns
-
 sns.set_style("white")
-
 from sklearn.model_selection import train_test_split
-
-from torch import nn
-
-# +
-from data import prepare_data, TGSSaltDataset
-from model import model_path, save_checkpoint, update_state, predict_tta
 import datetime
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-
 from torch.utils import data
-
-from resnetlike import UNetResNet
-from training import train, test
-from collections import defaultdict
 import logging
 import random
-from utils import create_optimizer, tboard_log_path
-import uuid
-import itertools as it
-from operator import itemgetter
-import shutil
-from losses import lovasz_hinge
-from metrics import my_iou_metric
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
-from visualisation import plot_poor_predictions
 import torch.nn as nn
-from visualisation import plot_predictions
-from metrics import iou_metric_batch
-from training import RefineStep
+from collections import defaultdict
+
+# +
+from data import prepare_data, TGSSaltDataset
+from model import model_path, save_checkpoint, update_state, predict_tta
+from resnetlike import UNetResNet
+from training import train, test, RefineStep
+from utils import tboard_log_path
+from losses import lovasz_hinge
+from metrics import my_iou_metric, iou_metric_batch
+from visualisation import plot_poor_predictions, plot_predictions
 from config import load_config, save_config
+
 # -
 
 logging.basicConfig(level=logging.INFO)
@@ -71,37 +58,17 @@ logger = logging.getLogger(__name__)
 
 now = datetime.datetime.now()
 
-config = load_config()['RefineModel']
-logger.info(f'Loading config {config}')
+config = load_config()["RefineModel"]
+logger.info(f"Loading config {config}")
 
 locals().update(config)
 
-# +
-# img_size_target = 101
-# batch_size = 128
-# learning_rate = 0.001
-# epochs = 200
-# num_workers = 0
-# seed = 42
-# notebook_id = f"{now:%d%b%Y}_{uuid.uuid4()}"
-# base_channels = 32
-# optim_config = {
-#     "optimizer": "sgd",
-#     "base_lr": 0.01,
-#     "momentum": 0.9,
-#     "weight_decay": 1e-4,
-#     "nesterov": True,
-#     "epochs": epochs,
-#     "scheduler": "cosine",
-#     "lr_min": 0,
-# }
-# -
 
 torch.backends.cudnn.benchmark = True
 logger.info(f"Started {now}")
 tboard_log = os.path.join(tboard_log_path(), f"log_{id}")
 logger.info(f"Writing TensorBoard logs to {tboard_log}")
-summary_writer = None#SummaryWriter(log_dir=tboard_log)
+summary_writer = SummaryWriter(log_dir=tboard_log)
 
 torch.manual_seed(seed)
 np.random.seed(seed)
@@ -116,24 +83,20 @@ device = torch.device("cuda:0")
 model = nn.DataParallel(model)
 model.to(device)
 
-model_dir=os.path.join(model_path(), f"{id}")
+model_dir = os.path.join(model_path(), f"{id}")
 filename = os.path.join(model_dir, initial_model_filename)
 checkpoint = torch.load(filename)
 model.load_state_dict(checkpoint["state_dict"])
 
-model.module.final_activation=nn.Sequential().to(device)
+model.module.final_activation = nn.Sequential().to(device)
 
 train_df, test_df = prepare_data()
 train_df.head()
 
 ids_train, ids_valid, x_train, x_valid, y_train, y_valid, cov_train, cov_test, depth_train, depth_test = train_test_split(
     train_df.index.values,
-    np.array(train_df.images.tolist()).reshape(
-        -1, 1, img_target_size, img_target_size
-    ),
-    np.array(train_df.masks.tolist()).reshape(
-        -1, 1, img_target_size, img_target_size
-    ),
+    np.array(train_df.images.tolist()).reshape(-1, 1, img_target_size, img_target_size),
+    np.array(train_df.masks.tolist()).reshape(-1, 1, img_target_size, img_target_size),
     train_df.coverage.values,
     train_df.z.values,
     test_size=0.2,
@@ -175,22 +138,29 @@ state = {
     "best_epoch": 0,
 }
 
-metrics=(('iou', my_iou_metric(threshold=0)),)
+metrics = (("iou", my_iou_metric(threshold=0)),)
 loss_fn = lovasz_hinge
-optimizer = torch.optim.Adam(model.parameters(), lr=optimization_config['learning_rate'])
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True, threshold=0.0001)
+optimizer = torch.optim.Adam(
+    model.parameters(), lr=optimization_config["learning_rate"]
+)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer, mode="min", factor=0.1, patience=10, verbose=True, threshold=0.0001
+)
 
 
-step_func = RefineStep(loss_fn, scheduler, optimizer, summary_writer=summary_writer, metrics_func=metrics, output_threshold=0)
+step_func = RefineStep(
+    loss_fn,
+    scheduler,
+    optimizer,
+    summary_writer=summary_writer,
+    metrics_func=metrics,
+    output_threshold=0,
+)
 
 lovasz_history = defaultdict(list)
 for epoch in range(epochs):
     train_metrics = train(
-        epoch,
-        model,
-        train_data_loader,
-        step_func,
-        summary_writer=summary_writer
+        epoch, model, train_data_loader, step_func, summary_writer=summary_writer
     )
 
     val_metrics = test(
@@ -200,7 +170,7 @@ for epoch in range(epochs):
         val_data_loader,
         summary_writer=summary_writer,
         metrics_funcs=metrics,
-        output_threshold=0
+        output_threshold=0,
     )
     scheduler.step(np.mean(val_metrics["loss"]))
     state = update_state(
@@ -208,7 +178,10 @@ for epoch in range(epochs):
     )
 
     save_checkpoint(
-        state, outdir=model_dir, model_filename=model_filename, best_model_filename=best_model_filename
+        state,
+        outdir=model_dir,
+        model_filename=model_filename,
+        best_model_filename=best_model_filename,
     )
 
     lovasz_history["epoch"].append(epoch)
@@ -239,8 +212,7 @@ predictions = [predict_tta(model, image) for image, _ in tqdm(val_data_loader)]
 preds_valid = np.concatenate(predictions, axis=0).squeeze()
 
 preds_thresh_iter = map(
-    lambda pred: np.array(np.round(pred > 0), dtype=np.float32),
-    preds_valid,
+    lambda pred: np.array(np.round(pred > 0), dtype=np.float32), preds_valid
 )
 
 preds_thresh = np.array(list(preds_thresh_iter))
@@ -288,17 +260,25 @@ plot_predictions(
 plt.legend()
 # -
 
-plot_poor_predictions(train_df, preds_thresh, y_valid_down, ids_valid, max_images=15, grid_width=5, figsize=(16, 10))
+plot_poor_predictions(
+    train_df,
+    preds_thresh,
+    y_valid_down,
+    ids_valid,
+    max_images=15,
+    grid_width=5,
+    figsize=(16, 10),
+)
 
 dd = train_df.loc[ids_valid]
 
-dd.groupby('coverage_class').mean().iou.plot(kind='bar')
+dd.groupby("coverage_class").mean().iou.plot(kind="bar")
 
-dd.groupby('coverage_class').count().z.plot(kind='bar')
+dd.groupby("coverage_class").count().z.plot(kind="bar")
 
-dd['iou'].mean()
+dd["iou"].mean()
 
 # write best threshold to config
 config = load_config()
-config['EvaluateModel']['threshold']=threshold_best
+config["EvaluateModel"]["threshold"] = threshold_best
 save_config(config)
