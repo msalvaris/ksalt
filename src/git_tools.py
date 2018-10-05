@@ -21,9 +21,18 @@ def list_branches():
 def set_description(branch, description):
     r = _get_repo()
     repo_writer = r.config_writer()
-    repo_writer.set("branch \"{}\"".format(branch), "description", description)
+    repo_writer.set('branch "{}"'.format(branch), "description", description)
     repo_writer.release()
 
 
+class Description(object):
+    def set(self, branch, description):
+        set_description(branch, description)
+
+    def set_from_file(self, branch, filename):
+        description = open(filename).readlines()
+        set_description(branch, description)
+
+
 if __name__ == "__main__":
-    fire.Fire({"list": list_branches, "description": set_description})
+    fire.Fire({"list": list_branches, "description": Description})
