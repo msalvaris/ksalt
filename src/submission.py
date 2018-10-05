@@ -59,8 +59,11 @@ def _submit(filename, dry_run=False):
         logger.warning('Submission timed out')
 
 
-def main(dry_run=False):
-    submissions_path = model_path()
+def main(dry_run=False, id=None):
+    if id is None:
+        submissions_path = model_path()
+    else:
+        submissions_path = os.path.join(model_path(), id)
     filenames = glob(os.path.join(submissions_path, '*.csv'))
     subfile = _options.get(len(filenames), _multiple_submissions)(filenames)
     _submit(subfile, dry_run=dry_run)
