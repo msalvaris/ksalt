@@ -61,7 +61,7 @@ import torch
 from torch.utils import data
 
 from resnetlike import UNetResNet
-from training import train, test
+from training import train, test, RefineStep
 from collections import defaultdict
 import logging
 import random
@@ -70,52 +70,60 @@ import uuid
 import itertools as it
 from operator import itemgetter
 import shutil
-from tensorboardx import SummaryWriter
-
+from tensorboardX import SummaryWriter
+from config import load_config
 # -
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 now = datetime.datetime.now()
 
-img_size_target = 101
-batch_size = 128
-learning_rate = 0.1
-epochs = 70
-num_workers = 0
-seed = 42
-num_cycles = (
-    6
-)  # Using Cosine Annealing with warm restarts, the number of times to oscillate
-notebook_id = f"{now:%d%b%Y}_{uuid.uuid4()}"
-base_channels = 32
-config = {
-    "run_config": {
-        "arch": "shake_shake",
-        "base_channels": 64,
-        "depth": 26,
-        "shake_forward": True,
-        "shake_backward": True,
-        "shake_image": True,
-        "input_shape": (1, 1, img_size_target, img_size_target),
-    },
-    "optim_config": {
-        "optimizer": "sgd",
-        "base_lr": learning_rate,
-        "momentum": 0.9,
-        "weight_decay": 1e-4,
-        "nesterov": True,
-        "epochs": epochs,
-        "scheduler": "cosine",
-        "lr_min": 0,
-    },
-}
+config = load_config()['Model']
+logger.info(f'Loading config {config}')
 
-logging.basicConfig(level=logging.INFO)
+locals().update(config)
+
+# +
+# img_size_target = 101
+# batch_size = 128
+# learning_rate = 0.1
+# epochs = 70
+# num_workers = 0
+# seed = 42
+# num_cycles = (
+#     6
+# )  # Using Cosine Annealing with warm restarts, the number of times to oscillate
+# notebook_id = f"{now:%d%b%Y}_{uuid.uuid4()}"
+# base_channels = 32
+# config = {
+#     "run_config": {
+#         "arch": "shake_shake",
+#         "base_channels": 64,
+#         "depth": 26,
+#         "shake_forward": True,
+#         "shake_backward": True,
+#         "shake_image": True,
+#         "input_shape": (1, 1, img_size_target, img_size_target),
+#     },
+#     "optim_config": {
+#         "optimizer": "sgd",
+#         "base_lr": learning_rate,
+#         "momentum": 0.9,
+#         "weight_decay": 1e-4,
+#         "nesterov": True,
+#         "epochs": epochs,
+#         "scheduler": "cosine",
+#         "lr_min": 0,
+#     },
+# }
+# -
+
 torch.backends.cudnn.benchmark = True
-logger = logging.getLogger(__name__)
 logger.info(f"Started {now}")
-tboard_log = os.path.join(tboard_log_path(), f"log_{notebook_id}")
+tboard_log = os.path.join(tboard_log_path(), f"log_{id}")
 logger.info(f"Writing TensorBoard logs to {tboard_log}")
-summary_writer = SummaryWriter(log_dir=tboard_log)
+summary_writer = None #SummaryWriter(log_dir=tboard_log)
 
 torch.manual_seed(seed)
 np.random.seed(seed)
@@ -131,7 +139,7 @@ model = nn.DataParallel(model)
 model.to(device)
 
 # Test to check network
-x = torch.randn(16, 1, img_size_target, img_size_target).cuda()
+x = torch.randn(16, 1, img_target_size, img_target_size).cuda()
 model.forward(x).shape
 
 # + {"papermill": {"duration": 5.000668, "end_time": "2018-09-17T13:01:52.893036", "exception": false, "start_time": "2018-09-17T13:01:47.892368", "status": "completed"}, "tags": []}
@@ -153,16 +161,16 @@ plot_depth_distributions(train_df.z, test_df.z)
 plot_images(train_df, max_images=15, grid_width=5, figsize=(16, 10))
 # -
 
-upsample_to = upsample(101, img_size_target)
+upsample_to = upsample(101, img_target_size)
 
 # + {"papermill": {"duration": 10.282893, "end_time": "2018-09-17T13:02:07.336485", "exception": false, "start_time": "2018-09-17T13:01:57.053592", "status": "completed"}, "tags": []}
 ids_train, ids_valid, x_train, x_valid, y_train, y_valid, cov_train, cov_test, depth_train, depth_test = train_test_split(
     train_df.index.values,
     np.array(train_df.images.map(upsample_to).tolist()).reshape(
-        -1, 1, img_size_target, img_size_target
+        -1, 1, img_target_size, img_target_size
     ),
     np.array(train_df.masks.map(upsample_to).tolist()).reshape(
-        -1, 1, img_size_target, img_size_target
+        -1, 1, img_target_size, img_target_size
     ),
     train_df.coverage.values,
     train_df.z.values,
@@ -208,7 +216,11 @@ val_data_loader = data.DataLoader(
     drop_last=False,
 )
 
-config["optim_config"]["steps_per_epoch"] = len(train_data_loader)
+optimization_config["steps_per_epoch"] = len(train_data_loader)
+optimization_config["epochs"] = epochs
+
+model_dir=os.path.join(model_path(), f"{id}")
+os.makedirs(model_dir, exist_ok=True)
 
 # +
 history = defaultdict(list)
@@ -217,19 +229,22 @@ loss_fn = torch.nn.BCELoss()
 global_counter = it.count()
 cumulative_epochs_counter = it.count()
 cycle_best_val_iou = {}
-for cycle in range(num_cycles):  # Cosine annealing with warm restarts
-    optimizer, scheduler = create_optimizer(model.parameters(), config["optim_config"])
+
+optimizer, scheduler = create_optimizer(model.parameters(), optimization_config)
+step_func = RefineStep(loss_fn, scheduler, optimizer, summary_writer=summary_writer)
+
+for cycle in range(optimization_config['scheduler']['num_cycles']):  # Cosine annealing with warm restarts
+    optimizer, scheduler = create_optimizer(model.parameters(), optimization_config)
+    step_func.set_optimizer(optimizer)
+    step_func.set_scheduler(scheduler)
     for epoch in range(epochs):
         cum_epoch = next(cumulative_epochs_counter)
         train_metrics = train(
             cum_epoch,
             model,
-            optimizer,
-            scheduler,
-            loss_fn,
             train_data_loader,
-            summary_writer=summary_writer,
-            global_counter=global_counter,
+            step_func,
+            summary_writer=summary_writer
         )
 
         val_metrics = test(
@@ -240,7 +255,7 @@ for cycle in range(num_cycles):  # Cosine annealing with warm restarts
             state, cum_epoch, "val_iou", np.mean(val_metrics["iou"]), model, optimizer
         )
 
-        save_checkpoint(state, best_model_filename=f"model_{cycle}_best_state.pth")
+        save_checkpoint(state, outdir=model_dir, best_model_filename=model_filename.format(cycle=cycle))
 
         history["epoch"].append(cum_epoch)
         history["train_loss"].append(np.mean(train_metrics["loss"]))
@@ -253,10 +268,10 @@ for cycle in range(num_cycles):  # Cosine annealing with warm restarts
 sorted_by_val_iou = sorted(cycle_best_val_iou.items(), key=itemgetter(1), reverse=True)
 best_cycle, best_iou = sorted_by_val_iou[0]
 logger.info(f"Best model cycle {best_cycle}: Validation IoU {best_iou}")
-logger.info("Saving to model_best_state.pth")
+logger.info(f"Saving to {best_model_filename}")
 shutil.copy(
-    os.path.join(model_path(), f"model_{best_cycle}_best_state.pth"),
-    os.path.join(model_path(), f"model_best_state.pth"),
+    os.path.join(model_dir, model_filename.format(cycle=best_cycle)),
+    os.path.join(model_dir, best_model_filename),
 )
 
 # + {"papermill": {"duration": 0.371981, "end_time": "2018-09-17T13:10:01.845367", "exception": false, "start_time": "2018-09-17T13:10:01.473386", "status": "completed"}, "tags": []}

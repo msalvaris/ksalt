@@ -35,7 +35,7 @@ from torch import nn
 
 # +
 from data import prepare_data, TGSSaltDataset
-from model import model_path, save_checkpoint, update_state
+from model import model_path, save_checkpoint, update_state, predict_tta
 import datetime
 import os
 import numpy as np
@@ -56,39 +56,52 @@ from operator import itemgetter
 import shutil
 from losses import lovasz_hinge
 from metrics import my_iou_metric
+from tensorboardX import SummaryWriter
+from tqdm import tqdm
+from visualisation import plot_poor_predictions
+import torch.nn as nn
+from visualisation import plot_predictions
+from metrics import iou_metric_batch
+from training import RefineStep
+from config import load_config, save_config
 # -
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 now = datetime.datetime.now()
 
-img_size_target = 101
-batch_size = 128
-learning_rate = 0.1
-epochs = 70
-num_workers = 0
-seed = 42
-num_cycles = (
-    6
-)  # Using Cosine Annealing with warm restarts, the number of times to oscillate
-notebook_id = f"{now:%d%b%Y}_{uuid.uuid4()}"
-base_channels = 32
-optim_config = {
-    "optimizer": "sgd",
-    "base_lr": 0.01,
-    "momentum": 0.9,
-    "weight_decay": 1e-4,
-    "nesterov": True,
-    "epochs": epochs,
-    "scheduler": "cosine",
-    "lr_min": 0,
-}
+config = load_config()['RefineModel']
+logger.info(f'Loading config {config}')
 
-logging.basicConfig(level=logging.INFO)
+locals().update(config)
+
+# +
+# img_size_target = 101
+# batch_size = 128
+# learning_rate = 0.001
+# epochs = 200
+# num_workers = 0
+# seed = 42
+# notebook_id = f"{now:%d%b%Y}_{uuid.uuid4()}"
+# base_channels = 32
+# optim_config = {
+#     "optimizer": "sgd",
+#     "base_lr": 0.01,
+#     "momentum": 0.9,
+#     "weight_decay": 1e-4,
+#     "nesterov": True,
+#     "epochs": epochs,
+#     "scheduler": "cosine",
+#     "lr_min": 0,
+# }
+# -
+
 torch.backends.cudnn.benchmark = True
-logger = logging.getLogger(__name__)
 logger.info(f"Started {now}")
-tboard_log = os.path.join(tboard_log_path(), f"log_{notebook_id}")
+tboard_log = os.path.join(tboard_log_path(), f"log_{id}")
 logger.info(f"Writing TensorBoard logs to {tboard_log}")
-summary_writer = None  # SummaryWriter(log_dir=tboard_log)
+summary_writer = None#SummaryWriter(log_dir=tboard_log)
 
 torch.manual_seed(seed)
 np.random.seed(seed)
@@ -103,16 +116,23 @@ device = torch.device("cuda:0")
 model = nn.DataParallel(model)
 model.to(device)
 
+model_dir=os.path.join(model_path(), f"{id}")
+filename = os.path.join(model_dir, initial_model_filename)
+checkpoint = torch.load(filename)
+model.load_state_dict(checkpoint["state_dict"])
+
+model.module.final_activation=nn.Sequential().to(device)
+
 train_df, test_df = prepare_data()
 train_df.head()
 
 ids_train, ids_valid, x_train, x_valid, y_train, y_valid, cov_train, cov_test, depth_train, depth_test = train_test_split(
     train_df.index.values,
     np.array(train_df.images.tolist()).reshape(
-        -1, 1, img_size_target, img_size_target
+        -1, 1, img_target_size, img_target_size
     ),
     np.array(train_df.masks.tolist()).reshape(
-        -1, 1, img_size_target, img_size_target
+        -1, 1, img_target_size, img_target_size
     ),
     train_df.coverage.values,
     train_df.z.values,
@@ -155,65 +175,47 @@ state = {
     "best_epoch": 0,
 }
 
-optim_config["steps_per_epoch"] = len(train_data_loader)
-
-# +
 metrics=(('iou', my_iou_metric(threshold=0)),)
-lovasz_history = defaultdict(list)
 loss_fn = lovasz_hinge
+optimizer = torch.optim.Adam(model.parameters(), lr=optimization_config['learning_rate'])
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True, threshold=0.0001)
 
-global_counter = it.count()
-cumulative_epochs_counter = it.count()
-cycle_best_val_iou = {}
-for cycle in range(num_cycles):  # Cosine annealing with warm restarts
-    optimizer, scheduler = create_optimizer(model.parameters(), optim_config)
-    for epoch in range(epochs):
-        cum_epoch = next(cumulative_epochs_counter)
-        train_metrics = train(
-            cum_epoch,
-            model,
-            optimizer,
-            scheduler,
-            loss_fn,
-            train_data_loader,
-            summary_writer=summary_writer,
-            global_counter=global_counter,
-            metrics_funcs=metrics,
-        )
 
-        val_metrics = test(
-            cum_epoch,
-            model,
-            loss_fn,
-            val_data_loader,
-            summary_writer=summary_writer,
-            metrics_funcs=metrics,
-        )
+step_func = RefineStep(loss_fn, scheduler, optimizer, summary_writer=summary_writer, metrics_func=metrics, output_threshold=0)
 
-        state = update_state(
-            state, cum_epoch, "val_iou", np.mean(val_metrics["iou"]), model, optimizer
-        )
+lovasz_history = defaultdict(list)
+for epoch in range(epochs):
+    train_metrics = train(
+        epoch,
+        model,
+        train_data_loader,
+        step_func,
+        summary_writer=summary_writer
+    )
 
-        save_checkpoint(
-            state, best_model_filename=f"model_lovasz_{cycle}_best_state.pth"
-        )
+    val_metrics = test(
+        epoch,
+        model,
+        loss_fn,
+        val_data_loader,
+        summary_writer=summary_writer,
+        metrics_funcs=metrics,
+        output_threshold=0
+    )
+    scheduler.step(np.mean(val_metrics["loss"]))
+    state = update_state(
+        state, epoch, "val_iou", np.mean(val_metrics["iou"]), model, optimizer
+    )
 
-        lovasz_history["epoch"].append(cum_epoch)
-        lovasz_history["train_loss"].append(np.mean(train_metrics["loss"]))
-        lovasz_history["val_loss"].append(np.mean(val_metrics["loss"]))
-        lovasz_history["train_iou"].append(np.mean(train_metrics["iou"]))
-        lovasz_history["val_iou"].append(np.mean(val_metrics["iou"]))
-    cycle_best_val_iou[cycle] = state["best_val_iou"]
-# -
+    save_checkpoint(
+        state, outdir=model_dir, model_filename=model_filename, best_model_filename=best_model_filename
+    )
 
-sorted_by_val_iou = sorted(cycle_best_val_iou.items(), key=itemgetter(1), reverse=True)
-best_cycle, best_iou = sorted_by_val_iou[0]
-logger.info(f"Best model cycle {best_cycle}: Validation IoU {best_iou}")
-logger.info("Saving to model_lovasz_state.pth")
-shutil.copy(
-    os.path.join(model_path(), f"model_lovasz_{best_cycle}_best_state.pth"),
-    os.path.join(model_path(), f"model_lovasz__best_state.pth"),
-)
+    lovasz_history["epoch"].append(epoch)
+    lovasz_history["train_loss"].append(np.mean(train_metrics["loss"]))
+    lovasz_history["val_loss"].append(np.mean(val_metrics["loss"]))
+    lovasz_history["train_iou"].append(np.mean(train_metrics["iou"]))
+    lovasz_history["val_iou"].append(np.mean(val_metrics["iou"]))
 
 fig, (ax_loss, ax_iou) = plt.subplots(1, 2, figsize=(15, 5))
 ax_loss.plot(lovasz_history["epoch"], lovasz_history["train_loss"], label="Train loss")
@@ -224,3 +226,79 @@ ax_loss.legend()
 ax_iou.plot(lovasz_history["epoch"], lovasz_history["train_iou"], label="Train IoU")
 ax_iou.plot(lovasz_history["epoch"], lovasz_history["val_iou"], label="Validation IoU")
 ax_iou.legend()
+
+# ### Find Optimal Threshold
+
+filename = os.path.join(model_dir, best_model_filename)
+checkpoint = torch.load(filename)
+model.load_state_dict(checkpoint["state_dict"])
+
+# +
+model.eval()
+predictions = [predict_tta(model, image) for image, _ in tqdm(val_data_loader)]
+preds_valid = np.concatenate(predictions, axis=0).squeeze()
+
+preds_thresh_iter = map(
+    lambda pred: np.array(np.round(pred > 0), dtype=np.float32),
+    preds_valid,
+)
+
+preds_thresh = np.array(list(preds_thresh_iter))
+
+
+plot_predictions(
+    train_df, preds_thresh, ids_valid, max_images=15, grid_width=5, figsize=(16, 10)
+)
+
+# +
+## Scoring for last model, choose threshold using validation data
+thresholds = np.linspace(0.3, 0.7, 31)
+y_valid_down = y_valid.squeeze()
+thresholds = np.log(thresholds / (1 - thresholds))
+
+ious = list(
+    map(
+        lambda th: iou_metric_batch(y_valid_down, np.int32(preds_valid > th)),
+        tqdm(thresholds),
+    )
+)
+
+threshold_best_index = np.argmax(ious)
+iou_best = ious[threshold_best_index]
+threshold_best = thresholds[threshold_best_index]
+# -
+
+plt.plot(thresholds, ious)
+plt.plot(threshold_best, iou_best, "xr", label="Best threshold")
+plt.xlabel("Threshold")
+plt.ylabel("IoU")
+plt.title("Threshold vs IoU ({}, {})".format(threshold_best, iou_best))
+
+# +
+preds_thresh_iter = map(
+    lambda pred: np.array(np.round(pred > threshold_best), dtype=np.float32),
+    preds_valid,
+)
+preds_thresh = np.array(list(preds_thresh_iter))
+
+plot_predictions(
+    train_df, preds_thresh, ids_valid, max_images=15, grid_width=5, figsize=(16, 10)
+)
+
+plt.legend()
+# -
+
+plot_poor_predictions(train_df, preds_thresh, y_valid_down, ids_valid, max_images=15, grid_width=5, figsize=(16, 10))
+
+dd = train_df.loc[ids_valid]
+
+dd.groupby('coverage_class').mean().iou.plot(kind='bar')
+
+dd.groupby('coverage_class').count().z.plot(kind='bar')
+
+dd['iou'].mean()
+
+# write best threshold to config
+config = load_config()
+config['EvaluateModel']['threshold']=threshold_best
+save_config(config)

@@ -1,54 +1,58 @@
 {
-  "Model":{
-    "id":7878,
-    "model_filename":"model_{cycle}_state.pth",
-    "best_model_filename":"best_model_state.pth",
-    "img_target_size": 101,
-    "batch_size": 128,
-    "epochs": 70,
-    "num_workers": 0,
-    "seed":42,
-    "base_channels":32,
-    "optimization_config":{
-      "type":"sgd",
-      "base_lr":0.1,
-      "momentum": 0.9,
-      "weight_decay": 1e-4,
-      "nesterov": true,
-      "scheduler":{
-        "type":"cosine",
-        "num_cycles": 6,
-        "lr_min": 0
-      }
+    "EvaluateModel": {
+        "base_channels": 32,
+        "batch_size": 128,
+        "id": "61464e07-ce3e-42b1-b88a-482d645756d8",
+        "img_target_size": 101,
+        "initial_model_filename": "best_lovasz_model.pth",
+        "name": "EvaluateModel",
+        "num_workers": 0,
+        "seed": 42,
+        "threshold": 0.32277339226305085
+    },
+    "Model": {
+        "base_channels": 32,
+        "batch_size": 128,
+        "best_model_filename": "best_model_state.pth",
+        "epochs": 70,
+        "id": "61464e07-ce3e-42b1-b88a-482d645756d8",
+        "img_target_size": 101,
+        "model_filename": "model_{cycle}_state.pth",
+        "num_workers": 0,
+        "optimization_config": {
+            "base_lr": 0.1,
+            "momentum": 0.9,
+            "nesterov": true,
+            "scheduler": {
+                "lr_min": 0,
+                "num_cycles": 6,
+                "type": "cosine"
+            },
+            "type": "sgd",
+            "weight_decay": 0.0001
+        },
+        "seed": 42
+    },
+    "RefineModel": {
+        "base_channels": 32,
+        "batch_size": 128,
+        "best_model_filename": "best_lovasz_model.pth",
+        "epochs": 200,
+        "id": "61464e07-ce3e-42b1-b88a-482d645756d8",
+        "img_target_size": 101,
+        "initial_model_filename": "best_model_state.pth",
+        "model_filename": "model_lovasz_state",
+        "name": "RefineModel",
+        "num_workers": 0,
+        "optimization_config": {
+            "learning_rate": 0.001,
+            "scheduler": {
+                "lr_min": 0,
+                "num_cycles": 6,
+                "type": "cosine"
+            },
+            "type": "adam"
+        },
+        "seed": 42
     }
-  },
-  "RefineModel": {
-    "name": "RefineModel",
-    "id": 7878,
-    "initial_model_filename": "best_model_state.pth",
-    "model_filename": "model_lovasz_state",
-    "best_model_filename": "best_lovasz_model.pth",
-    "img_target_size": 101,
-    "batch_size": 128,
-    "num_workers": 0,
-    "seed": 42,
-    "optimization_config": {
-      "type": "adam",
-      "learning_rate": 0.001,
-      "scheduler": {
-        "type": "cosine",
-        "num_cycles": 6,
-        "lr_min": 0
-      }
-    }
-  },
-      
-  "EvaluateModel":{
-    "name": "EvaluateModel",
-    "id": 7878,
-    "model_filename": "best_lovasz_model.pth",
-    "img_target_size": 101,
-    "num_workers": 0,
-    "seed": 42
-  }
 }
