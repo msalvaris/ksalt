@@ -84,9 +84,9 @@ clean-submission:
 	rm $(MODELS)/$(branch_name)/*.csv
 	
 update-description:
-	python git-tools.py description set_from_file description
+	python git_tools.py description set_from_file description
 	
 list-branches:
-	python git-tools.py list
+	python git_tools.py list
 
 .PHONY: help build push
