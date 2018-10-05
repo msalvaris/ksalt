@@ -33,7 +33,7 @@ class Description(object):
 
     def set_from_file(self, filename, branch=None):
         description = open(filename).readlines()
-        set_description(description, branch=branch)
+        set_description(' '.join(description), branch=branch)
 
 
 if __name__ == "__main__":
