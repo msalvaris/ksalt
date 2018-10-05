@@ -21,7 +21,7 @@ def list_branches():
 def set_description(branch, description):
     r = _get_repo()
     repo_writer = r.config_writer()
-    repo_writer.set("branch '{}'".format(branch), "description", description)
+    repo_writer.set("branch \"{}\"".format(branch), "description", description)
     repo_writer.release()
 
 
