@@ -37,7 +37,8 @@ from torch.utils import data
 import logging
 import random
 import os
-# +
+# -
+
 from data import (
     test_images_path,
     load_images_as_arrays,
@@ -48,8 +49,6 @@ from model import model_path, predict_tta
 from data import rle_encode
 from resnetlike import UNetResNet
 from config import load_config
-
-# -
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

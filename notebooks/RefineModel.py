@@ -39,8 +39,8 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import torch.nn as nn
 from collections import defaultdict
+# -
 
-# +
 from data import prepare_data, TGSSaltDataset
 from model import model_path, save_checkpoint, update_state, predict_tta
 from resnetlike import UNetResNet
@@ -51,7 +51,6 @@ from metrics import my_iou_metric, iou_metric_batch
 from visualisation import plot_poor_predictions, plot_predictions
 from config import load_config, save_config
 
-# -
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
