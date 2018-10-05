@@ -28,7 +28,7 @@ def load_config(config=_DEFAULT_CONFIG):
         return json.load(f)
 
 
-def _save_config(config_json, config_path):
+def save_config(config_json, config_path=_DEFAULT_CONFIG):
     logger.info(f'Saving config {config_path}')
     with open(config_path, "w") as f:
         json_string = json.dumps(config_json, sort_keys=True, indent=4)
@@ -40,7 +40,7 @@ def generate(id=None, config=_DEFAULT_CONFIG):
     logger.info('Generating config')
     config_json = load_config(config)
     config_json = _alter_id(id, config_json)
-    _save_config(config_json, config)
+    save_config(config_json, config_path=config)
 
 
 if __name__ == "__main__":
