@@ -25,5 +25,5 @@ def set_description(branch, description):
     repo_writer.release()
 
 
-if __name__ == "__name__":
+if __name__ == "__main__":
     fire.Fire({"list": list_branches, "description": set_description})
