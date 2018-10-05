@@ -32,15 +32,23 @@
 # %autoreload 2
 
 import matplotlib.pyplot as plt
-
 plt.style.use("seaborn-white")
 import seaborn as sns
-
 sns.set_style("white")
-
 from sklearn.model_selection import train_test_split
-
 from torch import nn
+import datetime
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import torch
+from torch.utils import data
+import logging
+import random
+import itertools as it
+from operator import itemgetter
+import shutil
+from tensorboardX import SummaryWriter
 
 # + {"papermill": {"duration": 0.098801, "end_time": "2018-09-17T13:01:47.892280", "exception": false, "start_time": "2018-09-17T13:01:47.793479", "status": "completed"}, "tags": []}
 from image_processing import upsample
@@ -52,25 +60,10 @@ from visualisation import (
     plot_images,
 )
 from model import model_path, save_checkpoint, update_state
-import datetime
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-import torch
-
-from torch.utils import data
-
 from resnetlike import UNetResNet
 from training import train, test, RefineStep
 from collections import defaultdict
-import logging
-import random
 from utils import create_optimizer, tboard_log_path
-import uuid
-import itertools as it
-from operator import itemgetter
-import shutil
-from tensorboardX import SummaryWriter
 from config import load_config
 # -
 
@@ -84,46 +77,11 @@ logger.info(f'Loading config {config}')
 
 locals().update(config)
 
-# +
-# img_size_target = 101
-# batch_size = 128
-# learning_rate = 0.1
-# epochs = 70
-# num_workers = 0
-# seed = 42
-# num_cycles = (
-#     6
-# )  # Using Cosine Annealing with warm restarts, the number of times to oscillate
-# notebook_id = f"{now:%d%b%Y}_{uuid.uuid4()}"
-# base_channels = 32
-# config = {
-#     "run_config": {
-#         "arch": "shake_shake",
-#         "base_channels": 64,
-#         "depth": 26,
-#         "shake_forward": True,
-#         "shake_backward": True,
-#         "shake_image": True,
-#         "input_shape": (1, 1, img_size_target, img_size_target),
-#     },
-#     "optim_config": {
-#         "optimizer": "sgd",
-#         "base_lr": learning_rate,
-#         "momentum": 0.9,
-#         "weight_decay": 1e-4,
-#         "nesterov": True,
-#         "epochs": epochs,
-#         "scheduler": "cosine",
-#         "lr_min": 0,
-#     },
-# }
-# -
-
 torch.backends.cudnn.benchmark = True
 logger.info(f"Started {now}")
 tboard_log = os.path.join(tboard_log_path(), f"log_{id}")
 logger.info(f"Writing TensorBoard logs to {tboard_log}")
-summary_writer = None #SummaryWriter(log_dir=tboard_log)
+summary_writer = SummaryWriter(log_dir=tboard_log)
 
 torch.manual_seed(seed)
 np.random.seed(seed)
