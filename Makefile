@@ -82,5 +82,11 @@ clean-model:
 clean-submission:
 	$(eval branch_name:=$(shell git branch | grep \* | cut -d ' ' -f2))
 	rm $(MODELS)/$(branch_name)/*.csv
+	
+update-description:
+	python git-tools.py description set_from_file description
+	
+list-branches:
+	python git-tools.py list
 
 .PHONY: help build push
