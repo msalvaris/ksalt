@@ -106,7 +106,7 @@ class UNetResNetSCSE(nn.Module):
 
         self.logit = nn.Sequential(
             nn.Conv2d(320, 64, kernel_size=3, padding=1),
-            nn.ReLU(inplce=True),
+            nn.ReLU(inplace=True),
             nn.Conv2d(64, 1, kernel_size=1, padding=0),
         )
 
