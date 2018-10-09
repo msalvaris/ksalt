@@ -120,9 +120,9 @@ class UNetResNetSCSE(nn.Module):
 
         x = self.conv1(x)
         e2 = self.encoder2(x)
-        e3 = self.encoder2(e2)
-        e4 = self.encoder2(e3)
-        e5 = self.encoder2(e4)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
+        e5 = self.encoder5(e4)
 
         f = self.center(e5)
         d5 = self.decoder5(f, e5)
