@@ -28,12 +28,6 @@ def _add_metrics(metric_collector_dict, metrics_funcs, mask_array, pred_array):
     return metric_collector_dict
 
 
-class TrainingStep(object):
-    def __init__(self):
-        super().__init__()
-
-    def __call__(self, model, image, mask, epoch):
-        raise NotImplementedError("Please implement __call__ method")
 
 
 class TrainStep(object):
@@ -206,7 +200,7 @@ class RefineTestStep(TestStep):
     def __init__(
         self, criterion, summary_writer=None, metrics_func=(("iou", my_iou_metric(threshold=0)))
     ):
-        super(RefineTestStep).__init__(criterion, summary_writer, metrics_func)
+        super().__init__(criterion, summary_writer, metrics_func)
 
     def __call__(self, model, image, mask, epoch):
         output, loss = self._evaluate(model, image, mask)
