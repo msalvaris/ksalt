@@ -145,7 +145,7 @@ class RefineStep(CycleStep):
             image,
             mask,
             train_metrics,
-            output_cpu,
+            torch.sigmoid(output_cpu),
         )
         return train_metrics
 
