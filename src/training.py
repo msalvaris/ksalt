@@ -36,7 +36,7 @@ class TrainingStep(object):
         raise NotImplementedError("Please implement __call__ method")
 
 
-class CycleStep(TrainingStep):
+class TrainStep(object):
     def __init__(
         self,
         criterion,
@@ -44,7 +44,6 @@ class CycleStep(TrainingStep):
         optimizer,
         summary_writer=None,
         metrics_func=(("iou", my_iou_metric),),
-        output_threshold=0.5,
     ):
         super().__init__()
         self._scheduler = scheduler
@@ -54,15 +53,14 @@ class CycleStep(TrainingStep):
 
         self._image_writer = create_image_writer(summary_writer)
         self._metrics_func = metrics_func
-        self._output_threshold = output_threshold
         self._step_counter = it.count()
         self._previous_epoch = None
-        
+
     def set_optimizer(self, optimizer):
-        self._optimizer=optimizer
-    
+        self._optimizer = optimizer
+
     def set_scheduler(self, scheduler):
-        self._scheduler=scheduler
+        self._scheduler = scheduler
 
     def _optimize(self, model, image, mask):
         with torch.cuda.device(0):
@@ -91,7 +89,7 @@ class CycleStep(TrainingStep):
             if self._previous_epoch != epoch:
                 self._previous_epoch = epoch
                 self._image_writer(image, "Train/Image", epoch, normalize=True)
-                self._image_writer(mask, "Train/Mask", epoch)       
+                self._image_writer(mask, "Train/Mask", epoch)
                 self._image_writer(output_cpu, "Train/Prediction", epoch)
 
     def _metrics(self, output_cpu, loss, mask):
@@ -107,45 +105,27 @@ class CycleStep(TrainingStep):
         output, loss = self._optimize(model, image, mask)
         output_cpu = torch.sigmoid(output).cpu()
         train_metrics = self._metrics(output_cpu, loss, mask)
-        self._to_tensorboard(
-            epoch,
-            image,
-            mask,
-            train_metrics,
-            output_cpu,
-        )
+        self._to_tensorboard(epoch, image, mask, train_metrics, output_cpu)
         return train_metrics
 
 
-class RefineStep(CycleStep):
+class RefineStep(TrainStep):
     def __init__(
         self,
         criterion,
         scheduler,
         optimizer,
         summary_writer=None,
-        metrics_func=(("iou", my_iou_metric),),
-        output_threshold=0,
+        metrics_func=(("iou", my_iou_metric(threshold=0)),),
     ):
-        super().__init__(
-            criterion,
-            scheduler,
-            optimizer,
-            summary_writer,
-            metrics_func,
-            output_threshold,
-        )
+        super().__init__(criterion, scheduler, optimizer, summary_writer, metrics_func)
 
     def __call__(self, model, image, mask, epoch):
         output, loss = self._optimize(model, image, mask)
         output_cpu = output.cpu()
         train_metrics = self._metrics(output_cpu, loss, mask)
         self._to_tensorboard(
-            epoch,
-            image,
-            mask,
-            train_metrics,
-            torch.sigmoid(output_cpu),
+            epoch, image, mask, train_metrics, torch.sigmoid(output_cpu)
         )
         return train_metrics
 
@@ -178,48 +158,75 @@ def train(epoch, model, train_loader, tain_step_func, summary_writer=None):
     return train_metrics
 
 
-def test(
-    epoch,
-    model,
-    criterion,
-    test_loader,
-    summary_writer=None,
-    metrics_funcs=(("iou", my_iou_metric),),
-    output_threshold=0.5,
-):
-    logger.info("Test {}".format(epoch))
+class TestStep(object):
+    def __init__(
+        self, criterion, summary_writer=None, metrics_func=(("iou", my_iou_metric),)
+    ):
+        super(TestStep).__init__()
+        self._metrics_func = metrics_func
+        self._summary_writer = summary_writer
+        self._criterion = criterion
+        self._image_writer = create_image_writer(summary_writer)
 
-    image_writer = create_image_writer(summary_writer)
-
-    model.eval()
-
-    val_metrics = defaultdict(list)
-    start = time.time()
-    for step, (image, mask) in enumerate(test_loader):
-
-        if summary_writer is not None and step == 0:
-            image_writer(image, "Test/Image", epoch, normalize=True)
-
+    def _evaluate(self, model, image, mask):
         with torch.cuda.device(0):
             image = image.type(torch.float).cuda(async=True)
             mask_gpu = mask.type(torch.float).cuda(async=True)
 
         with torch.no_grad():
             output = model(image)
-        loss = criterion(output, mask_gpu)
+        loss = self._criterion(output, mask_gpu)
+        return output, loss
 
-        output_cpu = output.cpu()
-        if summary_writer is not None and step == 0:
-            image_writer(mask, "Test/Mask", epoch)
-            image_writer(
-                torch.sigmoid(output_cpu), "Test/Prediction", epoch
-            )
+    def _to_tensorboard(self, epoch, image, mask, output_cpu):
+        if self._summary_writer is not None and self._previous_epoch != epoch:
+            self._previous_epoch = epoch
+            self._image_writer(image, "Test/Image", epoch, normalize=True)
+            self._image_writer(mask, "Test/Mask", epoch)
+            self._image_writer(output_cpu, "Test/Prediction", epoch)
 
-        val_metrics["loss"].append(loss.item())
-        val_metrics = _add_metrics(
-            
-            val_metrics, metrics_funcs, mask.numpy(), output_cpu.data.numpy()
+    def _metrics(self, output_cpu, loss, mask):
+        train_metrics = {}
+        train_metrics["loss"] = loss.item()
+        train_metrics = _add_metrics(
+            train_metrics, self._metrics_func, mask.numpy(), output_cpu.data.numpy()
         )
+        return train_metrics
+
+    def __call__(self, model, image, mask, epoch):
+        output, loss = self._evaluate(model, image, mask)
+        output_cpu = torch.sigmoid(output).cpu()
+        test_metrics = self._metrics(output_cpu, loss, mask)
+        self._to_tensorboard(epoch, image, mask, output_cpu)
+        return test_metrics
+
+
+class RefineTestStep(TestStep):
+    def __init__(
+        self, criterion, summary_writer=None, metrics_func=(("iou", my_iou_metric(threshold=0)))
+    ):
+        super(RefineTestStep).__init__(criterion, summary_writer=summary_writer, metrics_func=metrics_func)
+
+    def __call__(self, model, image, mask, epoch):
+        output, loss = self._evaluate(model, image, mask)
+        output_cpu = output.cpu()
+        test_metrics = self._metrics(output_cpu, loss, mask)
+        self._to_tensorboard(epoch, image, mask, torch.sigmoid(output_cpu))
+        return test_metrics
+
+
+def test(epoch, model, test_loader, test_step_func, summary_writer=None):
+    logger.info("Test {}".format(epoch))
+    model.eval()
+
+    val_metrics = defaultdict(list)
+    start = time.time()
+    for step, (image, mask) in enumerate(test_loader):
+
+        metrics = test_step_func(model, image, mask, epoch)
+
+        for key, item in metrics.items():
+            val_metrics[key].append(item)
 
     message = (
         f"Epoch: {epoch},"
