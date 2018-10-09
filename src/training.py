@@ -206,7 +206,7 @@ class RefineTestStep(TestStep):
     def __init__(
         self, criterion, summary_writer=None, metrics_func=(("iou", my_iou_metric(threshold=0)))
     ):
-        super(RefineTestStep).__init__(criterion, summary_writer=summary_writer, metrics_func=metrics_func)
+        super(RefineTestStep).__init__(criterion, summary_writer, metrics_func)
 
     def __call__(self, model, image, mask, epoch):
         output, loss = self._evaluate(model, image, mask)
