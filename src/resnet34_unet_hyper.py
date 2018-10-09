@@ -115,7 +115,7 @@ class UNetResNetSCSE(nn.Module):
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
         x = torch.cat(
-            [(x - mean[2]) / std[2], (x - mean[1]) / std[1], (x - mean[0]) / std[0]]
+            [(x - mean[2]) / std[2], (x - mean[1]) / std[1], (x - mean[0]) / std[0]], 1
         )
 
         x = self.conv1(x)
