@@ -20,7 +20,7 @@
         "model_filename": "model_{cycle}_state.pth",
         "num_workers": 0,
         "optimization_config": {
-            "base_lr": 0.1,
+            "base_lr": 0.05,
             "momentum": 0.9,
             "nesterov": true,
             "scheduler": {
