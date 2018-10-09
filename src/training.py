@@ -167,6 +167,7 @@ class TestStep(object):
         self._summary_writer = summary_writer
         self._criterion = criterion
         self._image_writer = create_image_writer(summary_writer)
+        self._previous_epoch=None
 
     def _evaluate(self, model, image, mask):
         with torch.cuda.device(0):
