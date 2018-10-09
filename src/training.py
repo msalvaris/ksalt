@@ -1,3 +1,4 @@
+import itertools as it
 import logging
 import time
 from collections import defaultdict
@@ -5,7 +6,6 @@ from collections import defaultdict
 import numpy as np
 import torch
 import torchvision
-import itertools as it
 
 from metrics import my_iou_metric
 
@@ -92,7 +92,7 @@ class CycleStep(TrainingStep):
                 self._previous_epoch = epoch
                 self._image_writer(image, "Train/Image", epoch, normalize=True)
                 self._image_writer(mask, "Train/Mask", epoch)       
-                self._image_writer(torch.sigmoid(output_cpu), "Train/Prediction", epoch)
+                self._image_writer(output_cpu, "Train/Prediction", epoch)
 
     def _metrics(self, output_cpu, loss, mask):
         train_metrics = {}
@@ -105,7 +105,7 @@ class CycleStep(TrainingStep):
     def __call__(self, model, image, mask, epoch):
         self._scheduler.step()
         output, loss = self._optimize(model, image, mask)
-        output_cpu = output.cpu()
+        output_cpu = torch.sigmoid(output).cpu()
         train_metrics = self._metrics(output_cpu, loss, mask)
         self._to_tensorboard(
             epoch,
