@@ -67,7 +67,7 @@ class Decoder(nn.Module):
         self.channel_gate = ChannelGate2d(out_channels)
 
     def forward(self, x, e=None):
-        x = F.upsample(x, scale_factor=2, mode="bilinear", align_corners=True)
+        x = F.interpolate(x, scale_factor=2, mode="bilinear", align_corners=True)
         if e is not None:
             x = torch.cat([x, e], 1)
 
@@ -134,10 +134,10 @@ class UNetResNetSCSE(nn.Module):
         f = torch.cat(
             (
                 d1,
-                F.upsample(d2, scale_factor=2, mode="bilinear", align_corners=False),
-                F.upsample(d3, scale_factor=4, mode="bilinear", align_corners=False),
-                F.upsample(d4, scale_factor=8, mode="bilinear", align_corners=False),
-                F.upsample(d5, scale_factor=16, mode="bilinear", align_corners=False),
+                F.interpolate(d2, scale_factor=2, mode="bilinear", align_corners=False),
+                F.interpolate(d3, scale_factor=4, mode="bilinear", align_corners=False),
+                F.interpolate(d4, scale_factor=8, mode="bilinear", align_corners=False),
+                F.interpolate(d5, scale_factor=16, mode="bilinear", align_corners=False),
             ),
             1,
         )
