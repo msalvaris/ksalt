@@ -198,7 +198,7 @@ class TestStep(object):
 
 class RefineTestStep(TestStep):
     def __init__(
-        self, criterion, summary_writer=None, metrics_func=(("iou", my_iou_metric(threshold=0)))
+        self, criterion, summary_writer=None, metrics_func=(("iou", my_iou_metric(threshold=0)),)
     ):
         super().__init__(criterion, summary_writer, metrics_func)
 
