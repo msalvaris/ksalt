@@ -47,9 +47,8 @@ from data import (
 )
 from model import model_path, predict_tta
 from data import rle_encode
-from resnet34_unet_hyper import UNetResNetSCSE
+from resnetlike import UNetResNet
 from config import load_config
-from image_processing import upsample, downsample
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -69,11 +68,13 @@ torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
 
-model = UNetResNetSCSE()
+model = UNetResNet(1, base_channels)
 
 device = torch.device("cuda:0")
 model = nn.DataParallel(model)
 model.to(device)
+
+model.module.final_activation = nn.Sequential().to(device)
 
 model_dir = os.path.join(model_path(), f"{id}")
 filename = os.path.join(model_dir, initial_model_filename)
@@ -81,12 +82,7 @@ checkpoint = torch.load(filename)
 model.load_state_dict(checkpoint["state_dict"])
 
 test_df = prepare_test_data()
-x_test = load_images_as_arrays(test_df.index, test_images_path())
-
-upsample_to = upsample(101, img_target_size)
-
-x_test = np.asarray(list(map(upsample_to, x_test)))
-
+x_test = np.array(load_images_as_arrays(test_df.index, test_images_path()))
 x_test = x_test.reshape(-1, 1, img_target_size, img_target_size)
 
 dataset_test = TGSSaltDataset(x_test, is_test=True)
@@ -105,10 +101,7 @@ predictions = [predict_tta(model, image) for image in tqdm(test_data_loader)]
 
 preds_test = np.concatenate(predictions, axis=0).squeeze()
 
-transform = compose(rle_encode, 
-                    np.round, 
-                    lambda x: x > threshold,
-                    downsample(img_target_size, 101))
+transform = compose(rle_encode, np.round, lambda x: x > threshold)
 
 pred_dict = {
     idx: transform(preds_test[i]) for i, idx in enumerate(tqdm(test_df.index.values))
