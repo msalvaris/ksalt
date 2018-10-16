@@ -45,5 +45,9 @@ def generate(id=None, config=_DEFAULT_CONFIG):
     save_config(config_json, config_path=config)
 
 
+def default_config_path():
+    return _DEFAULT_CONFIG
+
+
 if __name__ == "__main__":
     fire.Fire(generate)
