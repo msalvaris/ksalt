@@ -1,10 +1,11 @@
-from git import Repo
-import os
-import torch
 import logging
+import os
 import shutil
 from pprint import pformat
+
 import numpy as np
+import torch
+from git import Repo
 
 logger = logging.getLogger(__name__)
 

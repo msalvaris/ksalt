@@ -2,13 +2,13 @@
 Contains UNet implementation using a combination of ResNet and ResNext layer methods
 """
 
-from torch.nn import init
 import math
-from toolz import pipe
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from toolz import pipe
+from torch.nn import init
 
 
 def initialize_weights(module):

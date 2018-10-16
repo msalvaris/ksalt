@@ -1,5 +1,6 @@
-import numpy as np
 from itertools import filterfalse
+
+import numpy as np
 from toolz import curry
 
 

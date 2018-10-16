@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import uuid
+
 import fire
 
 logging.basicConfig(level=logging.INFO)

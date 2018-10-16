@@ -1,11 +1,13 @@
-import numpy as np
-from tqdm import tqdm
 import os
-from toolz import compose
+
+import numpy as np
 import pandas as pd
 from PIL import Image
-from metrics import cov_to_class
+from toolz import compose
 from torch.utils import data
+from tqdm import tqdm
+
+from metrics import cov_to_class
 
 
 def training_images_path():
