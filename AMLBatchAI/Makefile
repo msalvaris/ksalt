@@ -8,7 +8,7 @@ endef
 export PROJECT_HELP_MSG
 PWD:=$(shell pwd)
 SELECTED_SUBSCRIPTION:="Boston Team Danielle"
-RESOURCE_GROUP:="msazmlrg"
+RESOURCE_GROUP:="msazmlksaltrg"
 WORKSPACE:="msksalt"
 
 ## TODO: retag image and push to acr
@@ -21,7 +21,7 @@ select-subscription:
 	az account set --subscription $(SELECTED_SUBSCRIPTION)
 
 create-workspace:
-	python src/workspace.py create $(WORKSPACE) $(RESOURCE_GROUP) --subscription_id edf507a2-6235-46c5-b560-fd463ba2e771
+	python src/workspace.py create $(WORKSPACE) $(RESOURCE_GROUP) --subscription_id edf507a2-6235-46c5-b560-fd463ba2e771 --location eastus
 
 show-workspaces:
 	az ml workspace list -g $(RESOURCE_GROUP)
