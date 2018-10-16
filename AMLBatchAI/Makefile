@@ -21,7 +21,7 @@ select-subscription:
 	az account set --subscription $(SELECTED_SUBSCRIPTION)
 
 create-workspace:
-	python src/workspace.py create $(WORKSPACE) $(RESOURCE_GROUP)
+	python src/workspace.py create $(WORKSPACE) $(RESOURCE_GROUP) --subscription_id $(SELECTED_SUBSCRIPTION)
 
 show-workspaces:
 	az ml workspace list -g $(RESOURCE_GROUP)
