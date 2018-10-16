@@ -1,8 +1,9 @@
 import os
+import uuid
 
 import numpy as np
 import torch
-from git import Repo
+from git import Repo, InvalidGitRepositoryError
 
 
 def cosine_annealing(step, total_steps, lr_max, lr_min):
@@ -92,13 +93,20 @@ def create_optimizer(model_parameters, optim_config):
     return optimizer, scheduler
 
 
-def _ver():
-    repo = Repo(search_parent_directories=True)
-    return repo.active_branch.name, repo.active_branch.commit.hexsha
+def _generate_id():
+    return str(uuid.uuid4())
+
+
+def _log_identifier():
+    try:
+        repo = Repo(search_parent_directories=True)
+        return os.path.join(repo.active_branch.name, repo.active_branch.commit.hexsha)
+    except InvalidGitRepositoryError:
+        return os.getenv("TBOARD_LOG_IDENTIFIER", _generate_id())
 
 
 def tboard_log_path():
-    log_path = os.path.join(os.getenv("TBOARD_LOGS"), *_ver())
+    log_path = os.path.join(os.getenv("TBOARD_LOGS"), _log_identifier())
     if not os.path.exists(log_path):
         os.makedirs(log_path)
     return log_path
