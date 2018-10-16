@@ -23,7 +23,8 @@ setup_environment:=--env DATA='/mnt/data' \
 	--env MODELS='/mnt/models' \
 	--env PYTHONPATH=$PYTHONPATH:/workspace/experiment/src \
 	--env KAGGLE_CONFIG_DIR=/kaggle \
-	--env TBOARD_LOGS=/mnt/models/logs
+	--env TBOARD_LOGS=/mnt/models/logs \
+	--env MODEL_CONFIG=experiment/configs/config.json
 
 
 help:
@@ -64,7 +65,7 @@ download-data: $DATA/train $(DATA)/test $DATA/train.csv $(DATA)/depths.csv
 	@echo Data dowloaded
 
 run-model: $(DATA)/train $(DATA)/test
-	cd experiment/notebooks && python ../src/nb.py execute Model.ipynb Model.ipynb
+	python experiment/src/nb.py execute experiment/notebooks/Model.ipynb experiment/notebooks/Model.ipynb
 #	papermill experiment/notebooks/Model.ipynb notebooks/Model.ipynb --log-output $(FLAGS)
 
 convert-jupytext:	
