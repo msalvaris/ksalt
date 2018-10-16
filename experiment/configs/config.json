@@ -1,7 +1,7 @@
 {
     "EvaluateModel": {
         "base_channels": 32,
-        "batch_size": 128,
+        "batch_size": 32,
         "id": "99e6d379-569f-4554-bf37-afa6d1d2f4e4",
         "img_target_size": 128,
         "initial_model_filename": "best_lovasz_model.pth",
@@ -12,7 +12,7 @@
     },
     "Model": {
         "base_channels": 32,
-        "batch_size": 128,
+        "batch_size": 32,
         "best_model_filename": "best_model_state.pth",
         "epochs": 70,
         "id": "99e6d379-569f-4554-bf37-afa6d1d2f4e4",
@@ -35,7 +35,7 @@
     },
     "RefineModel": {
         "base_channels": 32,
-        "batch_size": 128,
+        "batch_size": 32,
         "best_model_filename": "best_lovasz_model.pth",
         "epochs": 200,
         "id": "99e6d379-569f-4554-bf37-afa6d1d2f4e4",
