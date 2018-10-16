@@ -15,7 +15,7 @@ def _generate_id():
     return str(uuid.uuid4())
 
 
-def _model_identifier():
+def model_identifier():
     try:
         repo = Repo(search_parent_directories=True)
         return repo.active_branch.name
@@ -24,7 +24,7 @@ def _model_identifier():
 
 
 def model_path():
-    model_path = os.path.join(os.getenv("MODELS"), _model_identifier())
+    model_path = os.path.join(os.getenv("MODELS"), model_identifier())
     if not os.path.exists(model_path):
         os.makedirs(model_path)
     return model_path
