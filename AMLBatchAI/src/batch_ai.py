@@ -14,6 +14,7 @@ def cluster(
     vm_priority="dedicated",
     cluster_min_nodes=0,
     cluster_max_nodes=4,
+    location="eastus",
 ):
     # choose a name for your cluster
 
@@ -28,6 +29,7 @@ def cluster(
             vm_priority=vm_priority,
             cluster_min_nodes=cluster_min_nodes,
             cluster_max_nodes=cluster_max_nodes,
+            location=location
         )
 
         # create the cluster
