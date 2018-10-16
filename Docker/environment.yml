@@ -30,5 +30,6 @@ dependencies:
     - tensorboard
     - tensorboardX
     - jupytext
-    
+    - azure
+    - azureml-sdk[notebooks, automl]
     
