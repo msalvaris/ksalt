@@ -51,6 +51,7 @@ import itertools as it
 from operator import itemgetter
 import shutil
 from tensorboardX import SummaryWriter
+import json
 
 # + {"papermill": {"duration": 0.098801, "end_time": "2018-09-17T13:01:47.892280", "exception": false, "start_time": "2018-09-17T13:01:47.793479", "status": "completed"}, "tags": []}
 from image_processing import upsample
@@ -62,12 +63,12 @@ from visualisation import (
     plot_images,
 )
 from model import model_path, save_checkpoint, update_state
-from resnetlike import UNetResNet
-from training import train, test, RefineStep
+# from resnetlike import UNetResNet
+from training import train, test, TrainStep, TestStep
 from collections import defaultdict
 from utils import create_optimizer, tboard_log_path
 from config import load_config
-
+from resnet34_unet_hyper import UNetResNetSCSE
 # -
 
 logging.basicConfig(level=logging.INFO)
@@ -76,7 +77,7 @@ logger = logging.getLogger(__name__)
 now = datetime.datetime.now()
 
 config = load_config()["Model"]
-logger.info(f"Loading config {config}")
+logger.info(f"Loading config {json.dumps(config, indent=4)}")
 
 locals().update(config)
 
@@ -90,7 +91,7 @@ torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
 
-model = UNetResNet(1, base_channels)
+model = UNetResNetSCSE()
 
 n_params = sum([param.view(-1).size()[0] for param in model.parameters()])
 logger.info("n_params: {}".format(n_params))
@@ -135,7 +136,7 @@ ids_train, ids_valid, x_train, x_valid, y_train, y_valid, cov_train, cov_test, d
     ),
     train_df.coverage.values,
     train_df.z.values,
-    test_size=0.2,
+    test_size=0.1,
     stratify=train_df.coverage_class,
     random_state=seed,
 )
@@ -185,14 +186,14 @@ os.makedirs(model_dir, exist_ok=True)
 
 # +
 history = defaultdict(list)
-loss_fn = torch.nn.BCELoss()
+loss_fn = torch.nn.BCEWithLogitsLoss()
 
-global_counter = it.count()
 cumulative_epochs_counter = it.count()
 cycle_best_val_iou = {}
 
 optimizer, scheduler = create_optimizer(model.parameters(), optimization_config)
-step_func = RefineStep(loss_fn, scheduler, optimizer, summary_writer=summary_writer)
+step_func = TrainStep(loss_fn, scheduler, optimizer, summary_writer=summary_writer)
+test_step_func = TestStep(loss_fn, summary_writer=summary_writer)
 
 for cycle in range(
     optimization_config["scheduler"]["num_cycles"]
@@ -211,7 +212,7 @@ for cycle in range(
         )
 
         val_metrics = test(
-            cum_epoch, model, loss_fn, val_data_loader, summary_writer=summary_writer
+            cum_epoch, model, val_data_loader, test_step_func, summary_writer=summary_writer
         )
 
         state = update_state(

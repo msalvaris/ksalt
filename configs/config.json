@@ -1,21 +1,21 @@
 {
     "EvaluateModel": {
         "base_channels": 32,
-        "batch_size": 64,
-        "id": "test",
+        "batch_size": 128,
+        "id": "99e6d379-569f-4554-bf37-afa6d1d2f4e4",
         "img_target_size": 128,
         "initial_model_filename": "best_lovasz_model.pth",
         "name": "EvaluateModel",
         "num_workers": 0,
         "seed": 42,
-        "threshold": 0.32277339226305085
+        "threshold": 0.43332206261113065
     },
     "Model": {
         "base_channels": 32,
-        "batch_size": 64,
+        "batch_size": 128,
         "best_model_filename": "best_model_state.pth",
         "epochs": 70,
-        "id": "test",
+        "id": "99e6d379-569f-4554-bf37-afa6d1d2f4e4",
         "img_target_size": 128,
         "model_filename": "model_{cycle}_state.pth",
         "num_workers": 0,
@@ -35,10 +35,10 @@
     },
     "RefineModel": {
         "base_channels": 32,
-        "batch_size": 64,
+        "batch_size": 128,
         "best_model_filename": "best_lovasz_model.pth",
         "epochs": 200,
-        "id": "test",
+        "id": "99e6d379-569f-4554-bf37-afa6d1d2f4e4",
         "img_target_size": 128,
         "initial_model_filename": "best_model_state.pth",
         "model_filename": "model_lovasz_state",
