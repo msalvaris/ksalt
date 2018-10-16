@@ -41,10 +41,11 @@ import torch.nn as nn
 from collections import defaultdict
 # -
 
+from image_processing import upsample
 from data import prepare_data, TGSSaltDataset
 from model import model_path, save_checkpoint, update_state, predict_tta
-from resnetlike import UNetResNet
-from training import train, test, RefineStep
+from resnet34_unet_hyper import UNetResNetSCSE
+from training import train, test, RefineStep, RefineTestStep
 from utils import tboard_log_path
 from losses import lovasz_hinge
 from metrics import my_iou_metric, iou_metric_batch
@@ -65,7 +66,7 @@ locals().update(config)
 
 torch.backends.cudnn.benchmark = True
 logger.info(f"Started {now}")
-tboard_log = os.path.join(tboard_log_path(), f"log_{id}")
+tboard_log = os.path.join(tboard_log_path(), f"log_refine_{id}")
 logger.info(f"Writing TensorBoard logs to {tboard_log}")
 summary_writer = SummaryWriter(log_dir=tboard_log)
 
@@ -73,7 +74,7 @@ torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
 
-model = UNetResNet(1, base_channels)
+model = UNetResNetSCSE()
 
 n_params = sum([param.view(-1).size()[0] for param in model.parameters()])
 logger.info("n_params: {}".format(n_params))
@@ -87,18 +88,22 @@ filename = os.path.join(model_dir, initial_model_filename)
 checkpoint = torch.load(filename)
 model.load_state_dict(checkpoint["state_dict"])
 
-model.module.final_activation = nn.Sequential().to(device)
-
 train_df, test_df = prepare_data()
 train_df.head()
 
+upsample_to = upsample(101, img_target_size)
+
 ids_train, ids_valid, x_train, x_valid, y_train, y_valid, cov_train, cov_test, depth_train, depth_test = train_test_split(
     train_df.index.values,
-    np.array(train_df.images.tolist()).reshape(-1, 1, img_target_size, img_target_size),
-    np.array(train_df.masks.tolist()).reshape(-1, 1, img_target_size, img_target_size),
+    np.array(train_df.images.map(upsample_to).tolist()).reshape(
+        -1, 1, img_target_size, img_target_size
+    ),
+    np.array(train_df.masks.map(upsample_to).tolist()).reshape(
+        -1, 1, img_target_size, img_target_size
+    ),
     train_df.coverage.values,
     train_df.z.values,
-    test_size=0.2,
+    test_size=0.1,
     stratify=train_df.coverage_class,
     random_state=seed,
 )
@@ -147,14 +152,17 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
 )
 
 
+# +
 step_func = RefineStep(
     loss_fn,
     scheduler,
     optimizer,
     summary_writer=summary_writer,
-    metrics_func=metrics,
-    output_threshold=0,
+    metrics_func=metrics
 )
+
+test_step_func = RefineTestStep(loss_fn, summary_writer=summary_writer)
+# -
 
 lovasz_history = defaultdict(list)
 for epoch in range(epochs):
@@ -165,11 +173,9 @@ for epoch in range(epochs):
     val_metrics = test(
         epoch,
         model,
-        loss_fn,
         val_data_loader,
-        summary_writer=summary_writer,
-        metrics_funcs=metrics,
-        output_threshold=0,
+        test_step_func,
+        summary_writer=summary_writer
     )
     scheduler.step(np.mean(val_metrics["loss"]))
     state = update_state(
@@ -281,3 +287,5 @@ dd["iou"].mean()
 config = load_config()
 config["EvaluateModel"]["threshold"] = threshold_best
 save_config(config)
+
+
