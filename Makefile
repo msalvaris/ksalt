@@ -64,7 +64,7 @@ download-data: $DATA/train $(DATA)/test $DATA/train.csv $(DATA)/depths.csv
 	@echo Data dowloaded
 
 run-model: $(DATA)/train $(DATA)/test
-	cd experiment && python src/nb.py execute notebooks/Model.ipynb notebooks/Model.ipynb
+	cd experiment/notebooks && python ../src/nb.py execute Model.ipynb Model.ipynb
 #	papermill experiment/notebooks/Model.ipynb notebooks/Model.ipynb --log-output $(FLAGS)
 
 convert-jupytext:	
