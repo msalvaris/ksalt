@@ -1,5 +1,5 @@
-from toolz import curry
 from skimage.transform import resize
+from toolz import curry
 
 
 @curry

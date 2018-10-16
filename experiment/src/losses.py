@@ -7,8 +7,9 @@ from __future__ import print_function, division
 
 import torch
 import torch.nn.functional as F
-from metrics import mean
 from torch.autograd import Variable
+
+from metrics import mean
 
 
 def lovasz_grad(gt_sorted):

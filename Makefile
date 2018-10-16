@@ -21,7 +21,7 @@ setup_volumes:=-v $(PWD):/workspace  \
 
 setup_environment:=--env DATA='/mnt/data' \
 	--env MODELS='/mnt/models' \
-	--env PYTHONPATH=$PYTHONPATH:/workspace/src \
+	--env PYTHONPATH=$PYTHONPATH:/workspace/experiment/src \
 	--env KAGGLE_CONFIG_DIR=/kaggle \
 	--env TBOARD_LOGS=/mnt/models/logs
 

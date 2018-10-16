@@ -8,6 +8,7 @@ from subprocess import CalledProcessError, TimeoutExpired
 
 import fire
 from git import Repo
+
 from model import model_path
 
 logger = logging.getLogger(__name__)
