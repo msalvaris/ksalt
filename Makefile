@@ -8,7 +8,10 @@ endef
 export PROJECT_HELP_MSG
 PWD:=$(shell pwd)
 
-image_name:=masalvar/ksalt
+BRANCH:=$(shell git branch | grep \* | cut -d ' ' -f2)
+control_image_name:=masalvar/ksalt
+execution_image_name:=masalvar/$(BRANCH):execution
+
 DATA_DIR:=/mnt/ksalt
 MODEL_DIR:=/mnt/models/ksalt
 KAGGLE:=/home/mat/.kaggle
@@ -30,20 +33,28 @@ setup_environment:=--env DATA='/mnt/data' \
 help:
 	echo "$$PROJECT_HELP_MSG" | less
 
-build:
-	docker build -t $(image_name) Docker
+buid: build-control build-execute
 
-run:
-	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(image_name)
+build-control:
+	docker build --target control -t $(control_image_name) Docker
+
+build-execute:
+	docker build --target execution -t $(execution_image_name) Docker
+
+bash:
+	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(control_image_name)
 	
 notebook:
-	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(image_name) bash -c "jupyter notebook"
+	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(control_image_name) bash -c "jupyter notebook"
 	
 tensorboard:
-	nvidia-docker run $(setup_volumes) $(setup_environment) -p 6006:6006 -it $(image_name) bash -c "tensorboard $(FLAGS)"
+	nvidia-docker run $(setup_volumes) $(setup_environment) -p 6006:6006 -it $(control_image_name) bash -c "tensorboard $(FLAGS)"
 
-push:
-	docker push $(image_name)
+run:
+	nvidia-docker run $(setup_volumes) $(setup_environment) -it $(execution_image_name)
+
+push-control:
+	docker push $(control_image_name)
 
 ### ONLY RUN THESE COMMANDS INSIDE THE DOCKER CONTAINER ###
 
