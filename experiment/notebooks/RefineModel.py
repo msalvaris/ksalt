@@ -43,13 +43,13 @@ import logging
 import random
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
-import torch.nn as nn
 from collections import defaultdict
+import json
 # -
 
 from image_processing import upsample
 from data import prepare_data, TGSSaltDataset
-from model import model_path, save_checkpoint, update_state, predict_tta
+from model import model_path, save_checkpoint, update_state, predict_tta, model_identifier
 from resnet34_unet_hyper import UNetResNetSCSE
 from training import train, test, RefineStep, RefineTestStep
 from utils import tboard_log_path
@@ -57,6 +57,14 @@ from losses import lovasz_hinge
 from metrics import my_iou_metric, iou_metric_batch
 from visualisation import plot_poor_predictions, plot_predictions
 from config import load_config, save_config, default_config_path
+# -
+
+try:
+    from azureml.core.run import Run, RunEnvironmentException
+    run = Run.get_context()
+except (ModuleNotFoundError, RunEnvironmentException):
+    from run_mock import RunMock
+    run = RunMock()
 
 
 logging.basicConfig(level=logging.INFO)
@@ -79,6 +87,8 @@ logger.info(f"Started {now}")
 tboard_log = os.path.join(tboard_log_path(), f"log_refine_{id}")
 logger.info(f"Writing TensorBoard logs to {tboard_log}")
 summary_writer = SummaryWriter(log_dir=tboard_log)
+run.tag('id', value=id)
+run.tag('model_id', value=model_identifier())
 
 torch.manual_seed(seed)
 np.random.seed(seed)
@@ -90,7 +100,7 @@ n_params = sum([param.view(-1).size()[0] for param in model.parameters()])
 logger.info("n_params: {}".format(n_params))
 
 device = torch.device("cuda:0")
-model = nn.DataParallel(model)
+# model = nn.DataParallel(model)
 model.to(device)
 
 model_dir = os.path.join(model_path(), f"{id}")

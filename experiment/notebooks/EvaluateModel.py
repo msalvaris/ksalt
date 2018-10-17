@@ -32,7 +32,6 @@ import matplotlib.pyplot as plt
 plt.style.use("seaborn-white")
 import seaborn as sns
 sns.set_style("white")
-from torch import nn
 from tqdm import tqdm
 from toolz import compose
 import datetime
@@ -43,6 +42,7 @@ from torch.utils import data
 import logging
 import random
 import os
+import json
 # -
 
 from data import (
@@ -56,6 +56,7 @@ from data import rle_encode
 from resnet34_unet_hyper import UNetResNetSCSE
 from config import load_config, default_config_path
 from image_processing import upsample, downsample
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ random.seed(seed)
 model = UNetResNetSCSE()
 
 device = torch.device("cuda:0")
-model = nn.DataParallel(model)
+# model = nn.DataParallel(model)
 model.to(device)
 
 model_dir = os.path.join(model_path(), f"{id}")
