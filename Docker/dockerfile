@@ -30,7 +30,7 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-COPY environment.yml .
+COPY Docker/environment.yml .
 
 ENV ENV_NAME=py3.6
 RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
@@ -44,7 +44,7 @@ ENV PATH /opt/conda/envs/$ENV_NAME/bin:/opt/conda/bin:$PATH
 
 FROM gpubase AS control
 
-COPY control_environment.yml .
+COPY Docker/control_environment.yml .
 RUN conda env update -f control_environment.yml
 
 # Install Azure CLI
@@ -65,7 +65,7 @@ RUN echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu
 	apt-get update &&\
 	apt-get install -y --no-install-recommends azcopy
 
-COPY jupyter_notebook_config.py /root/.jupyter/
+COPY Docker/jupyter_notebook_config.py /root/.jupyter/
 
 RUN jupyter nbextension install --py --user azureml.train.widgets && \
 	jupyter nbextension enable --py --user azureml.train.widgets

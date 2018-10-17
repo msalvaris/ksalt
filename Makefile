@@ -36,10 +36,10 @@ help:
 buid: build-control build-execute
 
 build-control:
-	docker build --target control -t $(control_image_name) Docker
+	docker build --target control -t $(control_image_name) -f Docker/dockerfile . 
 
 build-execute:
-	docker build --target execution -t $(execution_image_name) Docker
+	docker build --target execution -t $(execution_image_name)  -f Docker/dockerfile . 
 
 bash:
 	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(control_image_name)
