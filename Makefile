@@ -10,7 +10,7 @@ PWD:=$(shell pwd)
 
 BRANCH:=$(shell git branch | grep \* | cut -d ' ' -f2)
 control_image_name:=masalvar/ksalt
-execution_image_name:=masalvar/$(BRANCH):execution
+execution_image_name:=masalvar/ksalt-$(BRANCH):execution
 
 DATA_DIR:=/mnt/ksalt
 MODEL_DIR:=/mnt/models/ksalt
