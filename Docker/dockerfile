@@ -74,7 +74,7 @@ WORKDIR /workspace
 CMD /bin/bash
 
 FROM gpubase AS execution
-COPY experiment/ /workspace
+COPY experiment /workspace
 ENV PYTHONPATH  $PYTHONPATH:/workspace/src
 WORKDIR /workspace
 CMD /bin/bash
