@@ -17,8 +17,9 @@ MODEL_DIR:=/mnt/models/ksalt
 KAGGLE:=/home/mat/.kaggle
 FLAGS:=
 
-setup_volumes:=-v $(PWD):/workspace  \
-	-v $(DATA_DIR):/mnt/data \
+local_code_volume:=-v $(PWD):/workspace 
+
+setup_volumes:=-v $(DATA_DIR):/mnt/data \
 	-v $(MODEL_DIR):/mnt/models \
 	-v $(KAGGLE):/kaggle
 
@@ -43,17 +44,20 @@ build-execute:
 	docker build --target execution -t $(execution_image_name)  -f Docker/dockerfile . 
 
 bash:
-	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(control_image_name)
+	nvidia-docker run $(local_code_volume) $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(control_image_name)
 	
 notebook:
-	nvidia-docker run $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(control_image_name) bash -c "jupyter notebook"
+	nvidia-docker run $(local_code_volume) $(setup_volumes) $(setup_environment) -p 9999:9999 -p 6006:6006 -it $(control_image_name) bash -c "jupyter notebook"
 	
 tensorboard:
-	nvidia-docker run $(setup_volumes) $(setup_environment) -p 6006:6006 -it $(control_image_name) bash -c "tensorboard $(FLAGS)"
+	nvidia-docker run $(local_code_volume) $(setup_volumes) $(setup_environment) -p 6006:6006 -it $(control_image_name) bash -c "tensorboard $(FLAGS)"
+
+run-dev:
+	nvidia-docker run $(local_code_volume) $(setup_volumes) $(setup_environment) -it $(execution_image_name)
 
 run:
 	nvidia-docker run $(setup_volumes) $(setup_environment) -it $(execution_image_name)
-
+	
 push-control:
 	docker push $(control_image_name)
 
@@ -76,8 +80,12 @@ $(DATA)/test: $(DATA)/test.zip
 download-data: $DATA/train $(DATA)/test $DATA/train.csv $(DATA)/depths.csv
 	@echo Data dowloaded
 
-run-model: $(DATA)/train $(DATA)/test
+run-model-dev: $(DATA)/train $(DATA)/test
 	python experiment/src/nb.py execute experiment/notebooks/Model.ipynb experiment/notebooks/Model.ipynb
+#	papermill experiment/notebooks/Model.ipynb notebooks/Model.ipynb --log-output $(FLAGS)
+
+run-model: $(DATA)/train $(DATA)/test
+	python src/nb.py execute notebooks/Model.ipynb notebooks/Model.ipynb
 #	papermill experiment/notebooks/Model.ipynb notebooks/Model.ipynb --log-output $(FLAGS)
 
 convert-jupytext:	
