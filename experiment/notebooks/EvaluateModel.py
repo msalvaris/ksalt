@@ -1,7 +1,13 @@
 # ---
 # jupyter:
-#   jupytext_format_version: '1.3'
-#   jupytext_formats: ipynb,py
+#   celltoolbar: Tags
+#   jupytext:
+#     formats: ipynb,py:light
+#     text_representation:
+#       extension: .py
+#       format_name: light
+#       format_version: '1.3'
+#       jupytext_version: 0.8.2
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -48,7 +54,7 @@ from data import (
 from model import model_path, predict_tta
 from data import rle_encode
 from resnet34_unet_hyper import UNetResNetSCSE
-from config import load_config
+from config import load_config, default_config_path
 from image_processing import upsample, downsample
 
 logging.basicConfig(level=logging.INFO)
@@ -56,8 +62,12 @@ logger = logging.getLogger(__name__)
 
 now = datetime.datetime.now()
 
-config = load_config()["EvaluateModel"]
-logger.info(f"Loading config {config}")
+# + {"tags": ["parameters"]}
+config_path=default_config_path()
+# -
+
+config = load_config(config=config_path)["EvaluateModel"]
+logger.info(f"Loading config {json.dumps(config, indent=4)}")
 
 locals().update(config)
 

@@ -1,7 +1,13 @@
 # ---
 # jupyter:
-#   jupytext_format_version: '1.3'
-#   jupytext_formats: ipynb,py
+#   celltoolbar: Tags
+#   jupytext:
+#     formats: ipynb,py:light
+#     text_representation:
+#       extension: .py
+#       format_name: light
+#       format_version: '1.3'
+#       jupytext_version: 0.8.2
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -62,21 +68,32 @@ from visualisation import (
     plot_depth_distributions,
     plot_images,
 )
-from model import model_path, save_checkpoint, update_state
-# from resnetlike import UNetResNet
+from model import model_path, save_checkpoint, update_state, model_identifier
 from training import train, test, TrainStep, TestStep
 from collections import defaultdict
 from utils import create_optimizer, tboard_log_path
-from config import load_config
+from config import load_config, default_config_path
 from resnet34_unet_hyper import UNetResNetSCSE
 # -
+
+try:
+    from azureml.core.run import Run, RunEnvironmentException
+    run = Run.get_context()
+except (ModuleNotFoundError, RunEnvironmentException):
+    from run_mock import RunMock
+    run = RunMock()
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 now = datetime.datetime.now()
 
-config = load_config()["Model"]
+# + {"tags": ["parameters"]}
+config_path=default_config_path()
+# -
+
+config = load_config(config=config_path)["Model"]
 logger.info(f"Loading config {json.dumps(config, indent=4)}")
 
 locals().update(config)
@@ -86,6 +103,8 @@ logger.info(f"Started {now}")
 tboard_log = os.path.join(tboard_log_path(), f"log_{id}")
 logger.info(f"Writing TensorBoard logs to {tboard_log}")
 summary_writer = SummaryWriter(log_dir=tboard_log)
+run.tag('id', value=id)
+run.tag('model_id', value=model_identifier())
 
 torch.manual_seed(seed)
 np.random.seed(seed)
@@ -97,7 +116,7 @@ n_params = sum([param.view(-1).size()[0] for param in model.parameters()])
 logger.info("n_params: {}".format(n_params))
 
 device = torch.device("cuda:0")
-model = nn.DataParallel(model)
+# model = nn.DataParallel(model)
 model.to(device)
 
 # Test to check network
@@ -230,12 +249,15 @@ for cycle in range(
         history["val_loss"].append(np.mean(val_metrics["loss"]))
         history["train_iou"].append(np.mean(train_metrics["iou"]))
         history["val_iou"].append(np.mean(val_metrics["iou"]))
+        run.log('val_loss', history["val_loss"][-1])
+        run.log('val_iou', history["val_iou"][-1])
     cycle_best_val_iou[cycle] = state["best_val_iou"]
 # -
 
 sorted_by_val_iou = sorted(cycle_best_val_iou.items(), key=itemgetter(1), reverse=True)
 best_cycle, best_iou = sorted_by_val_iou[0]
 logger.info(f"Best model cycle {best_cycle}: Validation IoU {best_iou}")
+run.log('best_val_iou', best_iou)
 logger.info(f"Saving to {best_model_filename}")
 shutil.copy(
     os.path.join(model_dir, model_filename.format(cycle=best_cycle)),
