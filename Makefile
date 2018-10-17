@@ -33,7 +33,7 @@ setup_environment:=--env DATA='/mnt/data' \
 help:
 	echo "$$PROJECT_HELP_MSG" | less
 
-buid: build-control build-execute
+build: build-control build-execute
 	@echo "Built control and execution images"
 
 build-control:
