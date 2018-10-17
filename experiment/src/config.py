@@ -38,9 +38,9 @@ def save_config(config_json, config_path=_DEFAULT_CONFIG):
         f.write(json_string)
 
 
-def generate(id=None, config=_DEFAULT_CONFIG):
+def generate(id=None, config=_DEFAULT_CONFIG, config_template=_DEFAULT_CONFIG):
     logger.info("Generating config")
-    config_json = load_config(config)
+    config_json = load_config(config_template)
     config_json = _alter_id(id, config_json)
     save_config(config_json, config_path=config)
 
