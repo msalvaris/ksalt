@@ -34,6 +34,7 @@ help:
 	echo "$$PROJECT_HELP_MSG" | less
 
 buid: build-control build-execute
+	@echo "Built control and execution images"
 
 build-control:
 	docker build --target control -t $(control_image_name) -f Docker/dockerfile . 
