@@ -5,11 +5,11 @@ channels:
 dependencies:
   - ipython
   - jupyter
+  - tensorflow # Required by tensorboard
   - pip:
     - kaggle 
     - pydot
     - "--editable=git+https://github.com/szagoruyko/pytorchviz#egg=pytorchviz"
-    - tensorflow # Required by tensorboard
     - tensorboard
     - jupytext
 
