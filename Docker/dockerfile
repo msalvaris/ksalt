@@ -31,11 +31,12 @@ ENV LC_ALL en_US.UTF-8
 
 COPY Docker/environment.yml .
 
+ENV ENV_NAME=ksalt
 RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
      chmod +x ~/miniconda.sh && \
      ~/miniconda.sh -b -p /opt/conda && \
      rm ~/miniconda.sh && \
-     /opt/conda/bin/conda env create -q -f environment.yml && \
+     /opt/conda/bin/conda env create -q --name $ENV_NAME -f environment.yml && \
      /opt/conda/bin/conda clean -ya
 ENV PATH /opt/conda/envs/$ENV_NAME/bin:/opt/conda/bin:$PATH
 
@@ -43,7 +44,7 @@ ENV PATH /opt/conda/envs/$ENV_NAME/bin:/opt/conda/bin:$PATH
 FROM gpubase AS control
 
 COPY Docker/control_environment.yml .
-RUN conda env update -f control_environment.yml
+RUN conda env update -n $ENV_NAME -f control_environment.yml
 
 # Install Azure CLI
 RUN echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ xenial main" | \
