@@ -28,7 +28,7 @@ setup_environment:=--env DATA='/mnt/data' \
 	--env PYTHONPATH=$PYTHONPATH:/workspace/experiment/src \
 	--env KAGGLE_CONFIG_DIR=/kaggle \
 	--env TBOARD_LOGS=/mnt/models/logs \
-	--env MODEL_CONFIG=experiment/configs/config.json
+	--env MODEL_CONFIG=configs/config.json
 
 
 help:
