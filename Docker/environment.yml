@@ -23,5 +23,5 @@ dependencies:
     - fire
     - tensorboardX
     - azure
-    - azureml-sdk[notebooks, automl]
+    - azureml-sdk[notebooks, automl]==0.1.65
     
