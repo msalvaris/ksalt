@@ -26,5 +26,10 @@ create-workspace:
 show-workspaces:
 	az ml workspace list -g $(RESOURCE_GROUP)
 	
+#az acr login --name msksaltacrahtgbdgx
+#docker login myregistry.azurecr.io -u xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx -p myPassword	
+#sudo az acr login --name msksaltacrahtgbdgx -g msazmlksaltrgUnable to load extension 'azure-cli-ml'. Use --debug for more information.Login Succeeded
+#mat@msvole1:~/repos/_ksalt$ sudo docker tag masalvar/ksalt-pytorch_resnet34_unet_hyper:execution msksaltacrahtgbdgx.azurecr.io/ksalt-pytorch_resnet24_unet_hyper
+#mat@msvole1:~/repos/_ksalt$ sudo docker push msksaltacrahtgbdgx.azurecr.io/ksalt-pytorch_resnet24_unet_hyper
 	
 .PHONY: help build push
